@@ -1,0 +1,12 @@
+name: http_tools
+publish_to: none
+environment:
+  sdk: ^3.6.0
+
+workspace:
+  - packages/http_cache
+  - packages/http_intercept
+  - packages/http_logger
+
+#dev_dependencies:
+#  melos: ^7.0.0

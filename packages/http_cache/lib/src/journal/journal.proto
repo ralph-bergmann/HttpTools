@@ -1,0 +1,78 @@
+syntax = "proto3";
+package journal;
+import "timestamp.proto";
+
+message Journal {
+  // A map that associates a primary cache key with a JournalEntry.
+  map<string, JournalEntry> entries = 1; 
+}
+
+// Represents a cache entry in the journal for a specific URL.
+message JournalEntry {
+
+  // The primary cache key.
+  // The primary cache key is derived from the target URI.
+  // Since only GET requests are handled, the key is simply the URL.
+  string cacheKey = 1;
+
+  // A map that associates a secondary cache key with a CacheEntry.
+  // Each JournalEntry is for a specific URL and can have multiple CacheEntry
+  // instances depending on the vary response headers.
+  // The secondary cache key is constructed from the URL and vary headers.
+  // This ensures that different variations of the same URL can be cached separately.
+  map<string, CacheEntry> cacheEntries = 2;
+}
+
+// Represents the actual cached response.
+message CacheEntry {
+
+  // The secondary cache key.
+  // Like the primary cache key, this key is constructed from the URL.
+  // Additionally, it includes all vary headers.
+  // The vary headers are used to determine how the response varies based on
+  // different request headers, ensuring that the correct cached response is
+  // served for requests with different headers.
+  // This cache key is also used as the file name for storing the cached responses.
+  //
+  // The secondary cache key is built by normalizing the URL and concatenating it
+  // with a serialized representation of the vary headers. The vary headers are
+  // sorted by name and concatenated in a key-value format.
+  //
+  // Example:
+  // Given the URL: "https://example.com/api/data"
+  // And vary headers: { "Accept": "application/json", "Authorization": "Bearer token" }
+  // The secondary cache key would be:
+  // "https://example.com/api/data|Accept:application/json,Authorization:Bearer token"
+  string cacheKey = 1;
+
+  // The date and time when the cache entry was cached.
+  google.protobuf.Timestamp creationDate = 2;
+
+  // The HTTP status code for this response.
+  // int32 statusCode = 3;
+
+  // The reason phrase associated with the status code.
+  string reasonPhrase = 4;
+
+  // The size of the response body, in bytes.
+  //
+  // If the size of the request is not known in advance, this is `null`.
+  int32 contentLength = 5;
+
+  // The headers of the cached response.
+  // These headers are stored as key-value pairs.
+  map<string, string> responseHeaders = 6;
+
+  // The vary headers used to determine the cache key.
+  // These headers are stored as key-value pairs.
+  map<string, string> varyHeaders = 7;
+
+  // The number of times this cache entry has been accessed.
+  int32 hitCount = 8;
+
+  // The date and time when this cache entry was last accessed.
+  google.protobuf.Timestamp lastAccessDate = 9;
+
+  // The size of the persisted response, in bytes.
+  int32 persistedResponseSize = 10;
+}

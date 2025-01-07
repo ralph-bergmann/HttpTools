@@ -1,0 +1,93 @@
+# This file configures the static analysis results for your project (errors,
+# warnings, and lints).
+#
+# This enables the 'recommended' set of lints from `package:lints`.
+# This set helps identify many issues that may lead to problems when running
+# or consuming Dart code, and enforces writing Dart using a single, idiomatic
+# style and format.
+#
+# If you want a smaller set of lints you can change this to specify
+# 'package:lints/core.yaml'. These are just the most critical lints
+# (the recommended set includes the core lints).
+# The core lints are also what is used by pub.dev for scoring packages.
+
+include: package:lints/recommended.yaml
+
+# Uncomment the following section to specify additional rules.
+
+linter:
+  rules:
+    - always_declare_return_types # Declare method return types.
+    - always_put_control_body_on_new_line # Separate the control structure expression from its statement.
+    - avoid_equals_and_hash_code_on_mutable_classes # Avoid overloading operator == and hashCode on classes not marked @immutable.
+    - avoid_field_initializers_in_const_classes # Avoid field initializers in const classes.
+    - avoid_setters_without_getters # Avoid setters without getters.
+    - avoid_slow_async_io # Avoid slow async dart:io methods.
+    - avoid_types_on_closure_parameters # Avoid annotating types for function expression parameters.
+    - avoid_unused_constructor_parameters # Avoid defining unused parameters in constructors.
+    - avoid_void_async # Avoid async functions that return void.
+    - cancel_subscriptions # Cancel instances of dart.async.StreamSubscription.
+    - cascade_invocations # Cascade consecutive method invocations on the same reference.
+    - close_sinks # Close instances of dart.core.Sink.
+    - combinators_ordering # Sort combinator names alphabetically.
+    - comment_references # Only reference in scope identifiers in doc comments.
+    - deprecated_consistency # Missing deprecated annotation.
+    - deprecated_member_use_from_same_package # Avoid using deprecated elements from within the package in which they are declared.
+    - directives_ordering # Adhere to Effective Dart Guide directives sorting conventions.
+    - discarded_futures # Don't invoke asynchronous functions in non-async blocks.
+    - eol_at_end_of_file # Put a single newline at end of file.
+    - join_return_with_assignment # Join return statement with assignment when possible.
+    - leading_newlines_in_multiline_strings # Start multiline strings with a newline.
+    - lines_longer_than_80_chars # Avoid lines longer than 80 characters.
+    - matching_super_parameters # Use matching super parameter names.
+    - missing_code_block_language_in_doc_comment # specify the language used in the code block of a doc comment
+    - omit_local_variable_types # Omit type annotations for local variables.
+    - package_prefixed_library_names # Prefix library names with the package name and a dot-separated path.
+    - parameter_assignments # Don't reassign references to parameters of functions or methods.
+    - prefer_asserts_in_initializer_lists # Prefer putting asserts in initializer lists.
+    - prefer_const_constructors # Prefer const with constant constructors.
+    - prefer_const_constructors_in_immutables # Prefer declaring const constructors on @immutable classes.
+    - prefer_const_declarations # Prefer const over final for declarations.
+    - prefer_constructors_over_static_methods # Prefer defining constructors instead of static methods to create instances.
+    - prefer_expression_function_bodies # Use => for short members whose body is a single return statement.
+    - prefer_final_in_for_each # Prefer final in for-each loop variable if reference is not reassigned.
+    - prefer_final_locals # Prefer final for variable declarations if they are not reassigned.
+    - prefer_foreach # Use forEach to only apply a function to all the elements.
+    - prefer_int_literals # Prefer int literals over double literals.
+    - prefer_null_aware_method_calls # Prefer null aware method calls.
+    - prefer_relative_imports # Prefer relative imports for files in lib/.
+    - prefer_single_quotes # Only use double quotes for strings containing single quotes.
+    - prefer_void_to_null # Don't use the Null type, unless you are positive that you don't want void.
+    - require_trailing_commas # Use trailing commas for all function calls and declarations.
+    - sort_constructors_first # Sort constructor declarations before other members.
+    - sort_pub_dependencies # Sort pub dependencies alphabetically.
+    - sort_unnamed_constructors_first # Sort unnamed constructor declarations first.
+    - test_types_in_equals # Test type arguments in operator ==(Object other).
+    - throw_in_finally # Avoid throw in finally block.
+    - unawaited_futures # Future results in async function bodies must be awaited or marked unawaited using dart:async.
+    - unnecessary_await_in_return # Unnecessary await keyword in return.
+    - unnecessary_breaks # Don’t use explicit breaks when a break is implied.
+    - unnecessary_lambdas # Don’t create a lambda when a tear-off will do.
+    - unnecessary_library_name # Don't have a library name in a library declaration
+    - unnecessary_null_checks # Unnecessary null checks.
+    - use_enums # Use enums rather than classes that behave like enums.
+    - use_if_null_to_convert_nulls_to_bools # Use if-null operators to convert nulls to bools.
+    - use_late_for_private_fields_and_variables # Use late for private members with a non-nullable type.
+    - use_named_constants # Use predefined named constants.
+    - use_setters_to_change_properties # Use a setter for operations that conceptually change a property.
+    - use_string_buffers # Use string buffers to compose strings.
+    - use_super_parameters # Use super-initializer parameters where possible.
+    - use_to_and_as_if_applicable # Start the name of the method with to/_to or as/_as if applicable.
+
+analyzer:
+  exclude:
+    - "**/*.pb.dart"
+    - "**/*.pbenum.dart"
+    - "**/*.pbjson.dart"
+    - "**/*.pbserver.dart"
+
+# For more information about the core and recommended set of lints, see
+# https://dart.dev/go/core-lints
+
+# For additional information about configuring this file, see
+# https://dart.dev/guides/language/analysis-options
