@@ -60,7 +60,7 @@ class HttpLogger extends HttpInterceptor {
     if (isBasic) {
       _logger.info(
         '--> ${request.method} '
-        '${request.url.path}',
+        '${request.url.toString()}',
       );
     }
     if (isHeaders) {
@@ -98,7 +98,7 @@ class HttpLogger extends HttpInterceptor {
 
       _logger.info(
         '<-- ${response.statusCode} ${response.reasonPhrase} '
-        '[${duration}ms] ${response.request?.url.path}',
+        '[${duration}ms] ${response.request?.url.toString()}',
       );
     }
     if (isHeaders) {

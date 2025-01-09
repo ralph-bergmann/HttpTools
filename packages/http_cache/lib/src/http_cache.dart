@@ -114,11 +114,13 @@ class HttpCache extends HttpInterceptor {
     final cacheEntry = getCacheEntryForRequest(request);
 
     // Load the response from the cache if it exists.
-    final response = getCachedResponse(request);
+    final response = cacheEntry != null ? getCachedResponse(request) : null;
 
     // If the cache entry is not found or the response is null,
     // forward the request to the next interceptor.
     if (cacheEntry == null || response == null) {
+      _logger.info(
+          'cache miss: no matching cache entry for ${request.url.toString()}');
       return OnRequest.next(request);
     }
 
@@ -137,6 +139,9 @@ class HttpCache extends HttpInterceptor {
     if (cacheEntry.isExpired ||
         cacheEntry.mustRevalidate ||
         cacheEntry.noCache) {
+      _logger
+          .info('cache entry found but expired for ${request.url.toString()}');
+
       // If the cache entry is within the stale-while-revalidate period,
       // resolve and forward the request.
       if (cacheEntry.isStaleWhileRevalidate) {
@@ -146,6 +151,8 @@ class HttpCache extends HttpInterceptor {
         return OnRequest.next(request);
       }
     }
+
+    _logger.info('cache hit for ${request.url.toString()}');
 
     // Resolve the request with the cached response.
     return OnRequest.resolve(
@@ -386,15 +393,12 @@ class HttpCache extends HttpInterceptor {
   StreamedResponse? getCachedResponse(BaseRequest request) {
     final cacheEntry = getCacheEntryForRequest(request);
     if (cacheEntry == null) {
-      _logger.info('cache miss: no journal entry');
       return null;
     }
 
     // Retrieve the cached file from the file system.
     final cachedFile = _fs.file(cacheEntry.cacheKey);
     if (cachedFile.existsSync()) {
-      _logger.info('cache hit');
-
       // Update hit count and last access date.
       cacheEntry
         ..hitCount += 1
@@ -422,7 +426,6 @@ class HttpCache extends HttpInterceptor {
       );
     }
 
-    _logger.info('cache miss: no matching cache entry');
     return null;
   }
 
