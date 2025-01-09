@@ -31,6 +31,17 @@ const _jsonJournal = false;
 /// Default max cache size in bytes.
 const int _defaultMaxCacheSize = 100 * 1024 * 1024;
 
+// Headers that must be updated from a 304 response
+const _headersToUpdate = [
+  'date',
+  'etag',
+  'last-modified',
+  'expires',
+  'cache-control',
+  'vary',
+  'warning'
+];
+
 /// A class that implements HTTP caching using interceptors.
 ///
 /// This class intercepts HTTP GET requests and caches the responses locally
@@ -354,16 +365,15 @@ class HttpCache extends HttpInterceptor {
 
     final CacheEntry cacheEntry;
     if (existingEntry != null && response.statusCode == 304) {
-      // For 304 responses, update validation headers but keep original content
+      // For 304 responses, update headers but keep original content
       final updatedHeaders =
           Map<String, String>.from(existingEntry.responseHeaders);
 
-      // Update validation headers
-      if (response.headers.containsKey('etag')) {
-        updatedHeaders['etag'] = response.headers['etag']!;
-      }
-      if (response.headers.containsKey('last-modified')) {
-        updatedHeaders['last-modified'] = response.headers['last-modified']!;
+      // Update headers based on the response headers
+      for (final header in _headersToUpdate) {
+        if (response.headers.containsKey(header)) {
+          updatedHeaders[header] = response.headers[header]!;
+        }
       }
 
       cacheEntry = CacheEntry(
