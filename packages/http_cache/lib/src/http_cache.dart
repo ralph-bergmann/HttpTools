@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:io' as io;
 import 'dart:io';
 
 import 'package:async/async.dart';
 import 'package:collection/collection.dart';
 import 'package:file/chroot.dart';
-import 'package:file/file.dart';
+import 'package:file/file.dart' hide Directory;
 import 'package:file/local.dart';
 import 'package:file/memory.dart';
 import 'package:http/http.dart';
@@ -33,13 +32,13 @@ const int _defaultMaxCacheSize = 100 * 1024 * 1024;
 
 // Headers that must be updated from a 304 response
 const _headersToUpdate = [
-  'date',
-  'etag',
-  'last-modified',
-  'expires',
-  'cache-control',
-  'vary',
-  'warning'
+  HttpHeaders.cacheControlHeader,
+  HttpHeaders.dateHeader,
+  HttpHeaders.etagHeader,
+  HttpHeaders.expiresHeader,
+  HttpHeaders.lastModifiedHeader,
+  HttpHeaders.varyHeader,
+  HttpHeaders.warningHeader,
 ];
 
 /// A class that implements HTTP caching using interceptors.
@@ -75,7 +74,7 @@ class HttpCache extends HttpInterceptor {
   /// [cacheDir] is the directory where the cache will be stored.
   /// [private] indicates if the cache stores private content.
   Future<void> initLocal(
-    io.Directory cacheDir, {
+    Directory cacheDir, {
     int maxCacheSize = _defaultMaxCacheSize,
     bool private = false,
   }) async {
@@ -131,18 +130,20 @@ class HttpCache extends HttpInterceptor {
     // forward the request to the next interceptor.
     if (cacheEntry == null || response == null) {
       _logger.info(
-          'cache miss: no matching cache entry for ${request.url.toString()}');
+        'cache miss: no matching cache entry for ${request.url.toString()}',
+      );
       return OnRequest.next(request);
     }
 
     // Add ETag and Last-Modified headers if available.
     final eTag = cacheEntry.eTag;
     if (eTag != null) {
-      request.headers['If-None-Match'] = eTag;
+      request.headers[HttpHeaders.ifNoneMatchHeader] = eTag;
     }
     final lastModified = cacheEntry.lastModified;
     if (lastModified != null) {
-      request.headers['If-Modified-Since'] = HttpDate.format(lastModified);
+      request.headers[HttpHeaders.ifModifiedSinceHeader] =
+          HttpDate.format(lastModified);
     }
 
     // Check if the cache entry is expired, must be revalidated,
@@ -185,7 +186,7 @@ class HttpCache extends HttpInterceptor {
     }
 
     // Parse Cache-Control header.
-    final cacheControlHeader = response.headers['cache-control'];
+    final cacheControlHeader = response.headers[HttpHeaders.cacheControlHeader];
     final cacheControl = cacheControlHeader != null
         ? CacheControl.parse(cacheControlHeader)
         : null;
@@ -391,8 +392,8 @@ class HttpCache extends HttpInterceptor {
         cacheKey: secondaryCacheKey,
         reasonPhrase: response.reasonPhrase,
         contentLength: response.contentLength,
-        responseHeaders: response.headers,
-        varyHeaders: response.varyHeaders,
+        responseHeaders: response.headers.toLowerCaseKeys(),
+        varyHeaders: response.varyHeaders.toLowerCaseKeys(),
         hitCount: existingEntry?.hitCount ?? 0,
         lastAccessDate: Timestamp.fromDateTime(DateTime.now()),
       );
@@ -614,4 +615,9 @@ class HttpCache extends HttpInterceptor {
       await _journal.writeJournal(_fs, asJson: _jsonJournal);
     });
   }
+}
+
+extension _MapExtension on Map<String, String> {
+  Map<String, String> toLowerCaseKeys() =>
+      map((key, value) => MapEntry(key.toLowerCase(), value));
 }

@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:io';
 
 import 'package:http/http.dart';
 import 'package:uuid/uuid.dart';
@@ -62,7 +63,7 @@ extension BaseResponseExtensions on BaseResponse {
   /// that the header names are stored in a sorted order, which helps in
   /// consistent comparison and retrieval.
   Set<String> get varyFields {
-    final varyHeader = headers['vary'];
+    final varyHeader = headers[HttpHeaders.varyHeader];
     if (varyHeader == null || varyHeader.isEmpty) {
       return {};
     }
@@ -99,7 +100,7 @@ extension BaseResponseExtensions on BaseResponse {
   bool hasVaryAll() => varyFields.contains('*');
 
   CacheControl? get cacheControl {
-    final cacheControlHeader = headers['cache-control'];
+    final cacheControlHeader = headers[HttpHeaders.cacheControlHeader];
     if (cacheControlHeader != null) {
       return CacheControl.parse(cacheControlHeader);
     }

@@ -69,7 +69,7 @@ class CacheStatus {
   }
 
   /// The name of the Cache-Status header.
-  static const headerName = 'Cache-Status';
+  static const headerName = 'cache-status';
 
   /// The name of the cache.
   final String cacheName;
