@@ -333,7 +333,9 @@ class HttpCache extends HttpInterceptor {
   /// [response] is the HTTP response to be added or updated in the journal.
   @visibleForTesting
   Future<void> addOrUpdateCacheEntryForResponse(BaseResponse response) async {
+    // cacheKey for the response based on the request url.
     final primaryCacheKey = response.primaryCacheKey;
+    // cacheKey for the response based on the request url and vary headers.
     final secondaryCacheKey = response.secondaryCacheKey;
 
     if (primaryCacheKey == null || secondaryCacheKey == null) {
@@ -347,16 +349,44 @@ class HttpCache extends HttpInterceptor {
       () => JournalEntry(cacheKey: primaryCacheKey),
     );
 
-    // Create a new cache entry.
-    final cacheEntry = CacheEntry(
-      cacheKey: secondaryCacheKey,
-      reasonPhrase: response.reasonPhrase,
-      contentLength: response.contentLength,
-      responseHeaders: response.headers,
-      varyHeaders: response.varyHeaders,
-      hitCount: 0,
-      lastAccessDate: Timestamp.fromDateTime(DateTime.now()),
-    );
+    // Get existing cache entry if any
+    final existingEntry = journalEntry.cacheEntries[secondaryCacheKey];
+
+    final CacheEntry cacheEntry;
+    if (existingEntry != null && response.statusCode == 304) {
+      // For 304 responses, update validation headers but keep original content
+      final updatedHeaders =
+          Map<String, String>.from(existingEntry.responseHeaders);
+
+      // Update validation headers
+      if (response.headers.containsKey('etag')) {
+        updatedHeaders['etag'] = response.headers['etag']!;
+      }
+      if (response.headers.containsKey('last-modified')) {
+        updatedHeaders['last-modified'] = response.headers['last-modified']!;
+      }
+
+      cacheEntry = CacheEntry(
+        cacheKey: secondaryCacheKey,
+        reasonPhrase: existingEntry.reasonPhrase,
+        contentLength: existingEntry.contentLength,
+        responseHeaders: updatedHeaders,
+        varyHeaders: existingEntry.varyHeaders,
+        hitCount: existingEntry.hitCount,
+        lastAccessDate: Timestamp.fromDateTime(DateTime.now()),
+      );
+    } else {
+      // For new responses or non-304 status codes, create new cache entry
+      cacheEntry = CacheEntry(
+        cacheKey: secondaryCacheKey,
+        reasonPhrase: response.reasonPhrase,
+        contentLength: response.contentLength,
+        responseHeaders: response.headers,
+        varyHeaders: response.varyHeaders,
+        hitCount: existingEntry?.hitCount ?? 0,
+        lastAccessDate: Timestamp.fromDateTime(DateTime.now()),
+      );
+    }
 
     // Add or update the cache entry in the journal.
     journalEntry.cacheEntries[secondaryCacheKey] = cacheEntry;
