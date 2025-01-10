@@ -31,33 +31,33 @@ class CacheControl {
       final value = parts.length > 1 ? parts[1].trim() : null;
 
       switch (key) {
-        case 'max-age':
+        case _maxAgeDirective:
           if (value != null) {
             final seconds = int.tryParse(value);
             if (seconds != null && seconds >= 0) {
               maxAge = Duration(seconds: seconds);
             }
           }
-        case 'no-cache':
+        case _noCacheDirective:
           noCache = true;
-        case 'no-store':
+        case _noStoreDirective:
           noStore = true;
-        case 'must-revalidate':
+        case _mustRevalidateDirective:
           mustRevalidate = true;
-        case 'private':
+        case _privateDirective:
           private = true;
-        case 'public':
+        case _publicDirective:
           public = true;
-        case 'immutable':
+        case _immutableDirective:
           immutable = true;
-        case 'stale-while-revalidate':
+        case _staleWhileRevalidateDirective:
           if (value != null) {
             final seconds = int.tryParse(value);
             if (seconds != null) {
               staleWhileRevalidate = Duration(seconds: seconds);
             }
           }
-        case 'stale-if-error':
+        case _staleIfErrorDirective:
           if (value != null) {
             final seconds = int.tryParse(value);
             if (seconds != null) {
@@ -78,6 +78,76 @@ class CacheControl {
       staleWhileRevalidate: staleWhileRevalidate,
       staleIfError: staleIfError,
     );
+  }
+
+  /// Returns a new instance of CacheControl with the specified
+  /// properties updated.
+  CacheControl copyWith({
+    Duration? maxAge,
+    bool? noCache,
+    bool? noStore,
+    bool? mustRevalidate,
+    bool? private,
+    bool? public,
+    bool? immutable,
+    Duration? staleWhileRevalidate,
+    Duration? staleIfError,
+  }) =>
+      CacheControl._(
+        maxAge: maxAge ?? this.maxAge,
+        noCache: noCache ?? this.noCache,
+        noStore: noStore ?? this.noStore,
+        mustRevalidate: mustRevalidate ?? this.mustRevalidate,
+        private: private ?? this.private,
+        public: public ?? this.public,
+        immutable: immutable ?? this.immutable,
+        staleWhileRevalidate: staleWhileRevalidate ?? this.staleWhileRevalidate,
+        staleIfError: staleIfError ?? this.staleIfError,
+      );
+
+  /// Converts the CacheControl object into a string representation that matches
+  /// the Cache-Control HTTP header format.
+  ///
+  /// The output includes all set directives joined by commas. Duration values
+  /// are converted to seconds. For example:
+  /// ```dart
+  /// max-age=3600, public, stale-while-revalidate=60
+  /// ```
+  @override
+  String toString() {
+    final directives = <String>[];
+
+    if (maxAge != null) {
+      directives.add('$_maxAgeDirective=${maxAge!.inSeconds}');
+    }
+    if (noCache ?? false) {
+      directives.add(_noCacheDirective);
+    }
+    if (noStore ?? false) {
+      directives.add(_noStoreDirective);
+    }
+    if (mustRevalidate ?? false) {
+      directives.add(_mustRevalidateDirective);
+    }
+    if (private ?? false) {
+      directives.add(_privateDirective);
+    }
+    if (public ?? false) {
+      directives.add(_publicDirective);
+    }
+    if (immutable ?? false) {
+      directives.add(_immutableDirective);
+    }
+    if (staleWhileRevalidate != null) {
+      directives.add(
+        '$_staleWhileRevalidateDirective=${staleWhileRevalidate!.inSeconds}',
+      );
+    }
+    if (staleIfError != null) {
+      directives.add('$_staleIfErrorDirective=${staleIfError!.inSeconds}');
+    }
+
+    return directives.join(', ');
   }
 
   /// Specifies the maximum amount of time a resource is considered fresh.
@@ -111,3 +181,14 @@ class CacheControl {
   /// an error occurs during revalidation.
   final Duration? staleIfError;
 }
+
+/// String constants for Cache-Control directives
+const String _maxAgeDirective = 'max-age';
+const String _noCacheDirective = 'no-cache';
+const String _noStoreDirective = 'no-store';
+const String _mustRevalidateDirective = 'must-revalidate';
+const String _privateDirective = 'private';
+const String _publicDirective = 'public';
+const String _immutableDirective = 'immutable';
+const String _staleWhileRevalidateDirective = 'stale-while-revalidate';
+const String _staleIfErrorDirective = 'stale-if-error';
