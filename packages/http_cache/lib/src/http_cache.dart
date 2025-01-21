@@ -147,10 +147,8 @@ class HttpCache extends HttpInterceptor {
     }
 
     // Check if the cache entry is expired, must be revalidated,
-    // or has no-cache.
-    if (cacheEntry.isExpired ||
-        cacheEntry.mustRevalidate ||
-        cacheEntry.noCache) {
+    // or has immutable / no-cache / no-store directive.
+    if (cacheEntry.needsRevalidation) {
       _logger
           .info('cache entry found but expired for ${request.url.toString()}');
 

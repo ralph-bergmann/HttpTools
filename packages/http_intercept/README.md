@@ -162,9 +162,9 @@ Future<void> _myDartApp() async {
 
 ## Compatibility
 
-`http_intercept` works with popular HTTP libraries like 
+`http_intercept` works with popular HTTP packages like 
 [Chopper](https://pub.dev/packages/chopper), [Retrofit](https://pub.dev/packages/retrofit),
-and [Dio](https://pub.dev/packages/dio). You can also combine it with other HTTP
+and [Dio](https://pub.dev/packages/dio_compatibility_layer). You can also combine it with other HTTP
 clients, like [`cupertino_http`](https://pub.dev/packages/cupertino_http) for iOS and macOS,
 [`cronet_http`](https://pub.dev/packages/cronet_http) for Android, and
 [`RetryClient`](https://pub.dev/documentation/http/latest/retry/RetryClient-class.html),

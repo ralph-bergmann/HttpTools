@@ -39,6 +39,15 @@ extension CacheEntryExtensions on CacheEntry {
   /// contain the `private` directive.
   bool get isPrivate => cacheControl?.private ?? false;
 
+  /// Determines if the cache entry is immutable based on the `Cache-Control`
+  /// header.
+  ///
+  /// Returns `true` if the `Cache-Control` header contains the `immutable`
+  /// directive.
+  /// Returns `false` if the `Cache-Control` header is not present or does not
+  /// contain the `immutable` directive.
+  bool get isImmutable => cacheControl?.immutable ?? false;
+
   /// Determines if the cache entry must be revalidated based on the
   /// `Cache-Control` header.
   ///
@@ -56,6 +65,15 @@ extension CacheEntryExtensions on CacheEntry {
   /// Returns `false` if the `Cache-Control` header is not present or does not
   /// contain the `no-cache` directive.
   bool get noCache => cacheControl?.noCache ?? false;
+
+  /// Determines if the cache entry should not be stored based on the
+  /// `Cache-Control` header.
+  ///
+  /// Returns `true` if the `Cache-Control` header contains the `no-store`
+  /// directive.
+  /// Returns `false` if the `Cache-Control` header is not present or does not
+  /// contain the `no-store` directive.
+  bool get noStore => cacheControl?.noStore ?? false;
 
   /// Parses the `Cache-Control` header to get the cache control directives.
   ///
@@ -159,6 +177,39 @@ extension CacheEntryExtensions on CacheEntry {
     }
     return false;
   }
+
+  /// Determines if a cached response needs revalidation with the origin server.
+  /// 
+  /// Returns true when:
+  /// - no-store is set
+  /// - no-cache is set
+  /// - No expiration time is set
+  /// - must-revalidate is set
+  /// - Content is expired
+  /// 
+  /// Returns false when:
+  /// - Content is fresh and has immutable flag
+  bool get needsRevalidation {
+    if (noStore == true) {
+      return true;
+    }
+    if (noCache == true) {
+      return true;
+    }
+
+    final expirationTime = calculateExpirationTime();
+    if (expirationTime == null) {
+      return true;
+    }
+
+    // Fresh content with immutable flag never needs revalidation
+    if (!isExpired && isImmutable) {
+      return false;
+    }
+
+    return mustRevalidate || isExpired;
+  }
+
 
   /// Calculates the expiration time of the response based on the
   /// `Cache-Control: max-age` directive or the `Expires` header.
