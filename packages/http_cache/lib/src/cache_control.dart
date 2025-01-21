@@ -1,4 +1,10 @@
-/// Represents the parsed directives from the Cache-Control HTTP header.
+/// Represents the Cache-Control HTTP header directives that control caching
+/// behavior.
+///
+/// This class parses and manages standard Cache-Control directives including:
+/// - Time-based controls (max-age, stale-while-revalidate, stale-if-error)
+/// - Cache visibility (public, private)
+/// - Cache behavior flags (no-cache, no-store, must-revalidate, immutable)
 class CacheControl {
   CacheControl._({
     this.maxAge,
@@ -12,7 +18,13 @@ class CacheControl {
     this.staleIfError,
   });
 
-  /// Parses the Cache-Control header and extracts the directives.
+  /// Creates a CacheControl instance by parsing a Cache-Control header string.
+  ///
+  /// Handles both value-based directives like 'max-age=3600' and flag
+  /// directives like 'public'.
+  /// Duration values are parsed from seconds into Duration objects.
+  ///
+  /// Example header: 'max-age=3600, public, no-cache'
   factory CacheControl.parse(String header) {
     Duration? maxAge;
     bool? noCache;
@@ -80,8 +92,65 @@ class CacheControl {
     );
   }
 
-  /// Returns a new instance of CacheControl with the specified
-  /// properties updated.
+  /// Creates a Cache-Control header for static assets like images
+  /// that rarely change. Uses max-age with immutable flag for optimal caching.
+  factory CacheControl.staticAsset({
+    Duration maxAge = const Duration(days: 365),
+    Duration? staleWhileRevalidate,
+    Duration? staleIfError,
+  }) =>
+      CacheControl._(
+        maxAge: maxAge,
+        immutable: true,
+        public: true,
+        staleWhileRevalidate: staleWhileRevalidate,
+        staleIfError: staleIfError,
+      );
+
+  /// Creates a Cache-Control header for dynamic but cacheable API responses
+  /// with background revalidation for optimal performance.
+  factory CacheControl.dynamicContent({
+    required Duration maxAge,
+    Duration staleWhileRevalidate = const Duration(minutes: 5),
+    Duration? staleIfError,
+  }) =>
+      CacheControl._(
+        maxAge: maxAge,
+        staleWhileRevalidate: staleWhileRevalidate,
+        staleIfError: staleIfError,
+        public: true,
+      );
+
+  /// Creates a Cache-Control header that requires revalidation with the origin
+  /// server before using cached content. The response CAN be stored in caches,
+  /// but MUST be validated on each use.
+  ///
+  /// Use this when content might change and clients need fresh data, but storing
+  /// in cache is acceptable and (like API responses that update frequently).
+  ///
+  /// Performance benefit: Allows caches to store the response and send a
+  /// conditional request (If-None-Match/If-Modified-Since) to validate.
+  /// When content hasn't changed, the server responds with 304 Not Modified
+  /// without sending the full response body, saving bandwidth.
+  factory CacheControl.noCache() =>
+      CacheControl._(noCache: true, mustRevalidate: true);
+
+  /// Creates a Cache-Control header that prevents storing the response in any cache.
+  /// The response MUST NOT be stored in any cache (private or shared).
+  ///
+  /// Use this for sensitive data like personal information, authentication
+  /// tokens, or banking details that should never persist in any cache.
+  factory CacheControl.noStore() => CacheControl._(noStore: true);
+
+  /// Creates a new CacheControl instance with updated directive values.
+  ///
+  /// Useful for modifying specific directives while preserving others.
+  /// Returns a new instance, keeping the original immutable.
+  ///
+  /// Example:
+  /// ```dart
+  /// final newControl = originalControl.copyWith(maxAge: Duration(hours: 1));
+  /// ```
   CacheControl copyWith({
     Duration? maxAge,
     bool? noCache,
@@ -105,14 +174,12 @@ class CacheControl {
         staleIfError: staleIfError ?? this.staleIfError,
       );
 
-  /// Converts the CacheControl object into a string representation that matches
-  /// the Cache-Control HTTP header format.
+  /// Generates a valid Cache-Control header string from the current directives.
   ///
-  /// The output includes all set directives joined by commas. Duration values
-  /// are converted to seconds. For example:
-  /// ```dart
-  /// max-age=3600, public, stale-while-revalidate=60
-  /// ```
+  /// Includes only the directives that are explicitly set.
+  /// Duration values are converted back to seconds.
+  ///
+  /// Example output: 'max-age=3600, public, stale-while-revalidate=60'
   @override
   String toString() {
     final directives = <String>[];
@@ -150,35 +217,56 @@ class CacheControl {
     return directives.join(', ');
   }
 
-  /// Specifies the maximum amount of time a resource is considered fresh.
+  /// Maximum time in seconds the resource is considered fresh
   final Duration? maxAge;
 
-  /// Indicates that the response must not be cached.
+  /// Forces validation with origin server before using cached response
   final bool? noCache;
 
-  /// Indicates that the response must not be stored in any cache.
+  /// Prevents storing the response in any cache
   final bool? noStore;
 
-  /// Indicates that the response must be revalidated by the origin server
-  /// before being served from the cache.
+  /// Requires origin server validation when resource becomes stale
   final bool? mustRevalidate;
 
-  /// Indicates that the response is intended for a single user and must not
-  /// be stored by shared caches.
+  /// Response is specific to a user and not for shared caches
   final bool? private;
 
-  /// Indicates that the response may be stored by any cache.
+  /// Response may be cached by any cache (shared or private)
   final bool? public;
 
-  /// Indicates that the response will not be updated while it is fresh.
+  /// Response content will not change during its freshness lifetime
   final bool? immutable;
 
-  /// Indicates the time during which the cache can serve stale content while
-  /// revalidating in the background.
+  /// Time window during which a cache can serve stale content while fetching
+  /// a fresh version in the background. This enables "background revalidation"
+  /// where users get fast responses while updates happen asynchronously.
+  ///
+  /// Example: stale-while-revalidate=60 allows serving cached content for up
+  /// to 60 seconds while a fresh version is being fetched, eliminating user
+  /// wait time.
+  ///
+  /// Timeline example with max-age=60, stale-while-revalidate=30, stale-if-error=300:
+  /// - 0-60s: Content is fresh, served directly
+  /// - 60-90s: Content is stale but can be served while revalidating
+  /// - 60-360s: If server errors occur during revalidation, stale content can be served
+  /// - >90s: Must serve fresh content (unless there's an error within the stale-if-error window)
+  /// - >360s: Must serve error response
   final Duration? staleWhileRevalidate;
 
-  /// Indicates the time during which the cache can serve stale content if
-  /// an error occurs during revalidation.
+  /// Time window during which a cache can serve stale content when the origin
+  /// server returns errors. Acts as a fallback mechanism during outages or
+  /// network issues to maintain service availability.
+  ///
+  /// Example: stale-if-error=3600 allows using cached content for up to 1 hour
+  /// when the server is unavailable, preventing error pages during downtime.
+  ///
+  /// Timeline example with max-age=60, stale-while-revalidate=30, stale-if-error=300:
+  /// - 0-60s: Content is fresh, served directly
+  /// - 60-90s: Content is stale but can be served while revalidating
+  /// - 60-360s: If server errors occur during revalidation, stale content can be served
+  /// - >90s: Must serve fresh content (unless there's an error within the stale-if-error window)
+  /// - >360s: Must serve error response
   final Duration? staleIfError;
 }
 
