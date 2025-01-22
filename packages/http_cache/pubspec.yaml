@@ -9,6 +9,7 @@ topics:
   - cache
 version: 1.0.0
 repository: https://github.com/ralph-bergmann/HttpTools
+issue_tracker: https://github.com/ralph-bergmann/HttpTools/issues
 
 environment:
   sdk: ^3.6.0
