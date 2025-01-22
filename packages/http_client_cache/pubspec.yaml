@@ -19,6 +19,7 @@ dependencies:
   async: ^2.11.0
   collection: ^1.19.0
   file: ^7.0.1
+  fixnum: ^1.1.1
   http: ^1.2.2
   http_client_interceptor: ^1.0.1
   http_client_logger: ^1.0.0
