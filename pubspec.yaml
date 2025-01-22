@@ -6,11 +6,11 @@ environment:
   sdk: ^3.6.0
 
 workspace:
-  - packages/http_cache
-  - packages/http_cache/example
-  - packages/http_intercept
-  - packages/http_intercept/example
-  - packages/http_logger
+  - packages/http_client_cache
+  - packages/http_client_cache/example
+  - packages/http_client_interceptor
+  - packages/http_client_interceptor/example
+  - packages/http_client_logger
 
 dev_dependencies:
  melos: ^7.0.0-dev.4

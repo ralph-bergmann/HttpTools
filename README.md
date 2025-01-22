@@ -6,14 +6,14 @@ work effectively with network requests.
 
 ## Packages
  
-### http_interceptor
+### http_client_interceptor
 
-The [http_interceptor](https://pub.dev/packages/http_intercept) package allows you to intercept and manipulate HTTP
+The [http_client_interceptor](https://pub.dev/packages/http_client_interceptor) package allows you to intercept and manipulate HTTP
 requests and responses.
 
 ```dart
 import 'package:http/http.dart' as http;
-import 'package:http_interceptor/http_interceptor.dart';
+import 'package:http_client_interceptor/http_interceptor.dart';
 
 class LoggingInterceptor extends HttpInterceptor {
   @override
@@ -56,13 +56,13 @@ Future<void> _myDartApp() async {
 
 ### http_logger
 
-The [http_logger](https://pub.dev/packages/http_logger) package provides an interceptor to log HTTP requests and
+The [http_client_logger](https://pub.dev/packages/http_client_logger) package provides an interceptor to log HTTP requests and
 responses.
 
 ```dart
 import 'package:http/http.dart' as http;
-import 'package:http_logger/http_logger.dart';
-import 'package:http_interceptor/http_interceptor.dart';
+import 'package:http_client_logger/http_client_logger.dart';
+import 'package:http_client_interceptor/http_interceptor.dart';
 import 'package:logging/logging.dart';
 
 void main() {
@@ -88,14 +88,14 @@ void main() {
 
 ### http_cache
 
-The [http_cache](https://pub.dev/packages/http_cache) package provides caching mechanisms to improve the performance of
+The [http_client_cache](https://pub.dev/packages/http_client_cache) package provides caching mechanisms to improve the performance of
 your HTTP requests.
 
 ```dart
 import 'dart:io' hide Directory;
 import 'package:http/http.dart' as http;
-import 'package:http_cache/http_cache.dart';
-import 'package:http_interceptor/http_interceptor.dart';
+import 'package:http_client_cache/http_client_cache.dart';
+import 'package:http_client_interceptor/http_interceptor.dart';
 import 'package:logging/logging.dart';
 
 void main() {
