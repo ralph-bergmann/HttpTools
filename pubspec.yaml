@@ -1,5 +1,6 @@
 name: http_tools
 publish_to: none
+repsitory: https://github.com/ralph-bergmann/HttpToolss
 environment:
   sdk: ^3.6.0
 
@@ -7,7 +8,26 @@ workspace:
   - packages/http_cache
   - packages/http_cache/example
   - packages/http_intercept
+  - packages/http_intercept/example
   - packages/http_logger
 
-#dev_dependencies:
-#  melos: ^7.0.0
+dev_dependencies:
+ melos: ^7.0.0-dev.4
+
+melos:
+  ide:
+    intellij:
+      enabled: false
+  scripts:
+    analyze:
+      exec: dart analyze .
+    format:
+      exec: dart format -l 80 .
+    fix:
+      exec: dart fix --apply
+    test:
+      run: melos exec -c 1 --fail-fast -- "dart test"
+      packageFilters:
+        dirExists: test
+        flutter: false
+

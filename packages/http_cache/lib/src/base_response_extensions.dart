@@ -49,7 +49,7 @@ extension BaseResponseExtensions on BaseResponse {
         .map((entry) => '${entry.key}:${entry.value}')
         .join(',');
     final combinedString = '$url|$vary';
-    return _uuid.v5(Uuid.NAMESPACE_URL, combinedString);
+    return _uuid.v5(Namespace.url.value, combinedString);
   }
 
   /// Returns the names of the request headers that need to be checked for

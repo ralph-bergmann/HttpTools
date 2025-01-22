@@ -14,5 +14,5 @@ extension BaseRequestExtensions on BaseRequest {
   /// Example:
   /// Given the URL: "https://example.com/api/data"
   /// The cache key would be a UUID v5 hash of this URL.
-  String get cacheKey => _uuid.v5(Uuid.NAMESPACE_URL, url.toString());
+  String get cacheKey => _uuid.v5(Namespace.url.value, url.toString());
 }

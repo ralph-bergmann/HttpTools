@@ -10,3 +10,5 @@ pubspec.lock
 # IntelliJ stuff
 *.iml
 .idea/
+.flutter-plugins
+.flutter-plugins-dependencies

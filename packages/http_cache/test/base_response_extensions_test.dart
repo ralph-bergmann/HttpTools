@@ -112,7 +112,7 @@ void main() {
         final response =
             StreamedResponse(const Stream.empty(), 200, request: request);
         final expectedKey =
-            const Uuid().v5(Uuid.NAMESPACE_URL, 'https://example.com|');
+            const Uuid().v5(Namespace.url.value, 'https://example.com|');
         expect(response.secondaryCacheKey, equals(expectedKey));
       });
 
@@ -134,7 +134,8 @@ void main() {
         );
         const combinedString =
             'https://example.com|accept:application/json,authorization:Bearer token';
-        final expectedKey = const Uuid().v5(Uuid.NAMESPACE_URL, combinedString);
+        final expectedKey =
+            const Uuid().v5(Namespace.url.value, combinedString);
         expect(response.secondaryCacheKey, equals(expectedKey));
       });
 
@@ -156,7 +157,8 @@ void main() {
         );
         const combinedString =
             'https://example.com|accept:application/json,authorization:Bearer token';
-        final expectedKey = const Uuid().v5(Uuid.NAMESPACE_URL, combinedString);
+        final expectedKey =
+            const Uuid().v5(Namespace.url.value, combinedString);
         expect(response.secondaryCacheKey, equals(expectedKey));
       });
     });

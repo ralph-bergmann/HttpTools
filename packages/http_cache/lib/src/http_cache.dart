@@ -69,14 +69,18 @@ class HttpCache extends HttpInterceptor {
   /// Maximum cache size in bytes.
   late final int _maxCacheSize;
 
-  /// Initialize a local file system-based cache.
+  /// Initialize a local file system-based private cache (means it will store
+  /// shared as well as private content). You should prune the cache with
+  /// [deletePrivateContent()] after the user has logged out.
+  /// Default cache size is 100 MB.
   ///
   /// [cacheDir] is the directory where the cache will be stored.
+  /// [maxCacheSize] is the maximum size of the cache in bytes.
   /// [private] indicates if the cache stores private content.
   Future<void> initLocal(
     Directory cacheDir, {
     int maxCacheSize = _defaultMaxCacheSize,
-    bool private = false,
+    bool private = true,
   }) async {
     // Create the cache directory if it does not exist.
     await cacheDir.create(recursive: true);
@@ -87,12 +91,16 @@ class HttpCache extends HttpInterceptor {
     _private = private;
   }
 
-  /// Initialize an in-memory cache.
+  /// Initialize an in-memory private cache (means it will store
+  /// shared as well as private content). You should prune the cache with
+  /// [deletePrivateContent()] after the user has logged out.
+  /// Default cache size is 100 MB.
   ///
+  /// [maxCacheSize] is the maximum size of the cache in bytes.
   /// [private] indicates if the cache stores private content.
   Future<void> initInMemory({
     int maxCacheSize = _defaultMaxCacheSize,
-    bool private = false,
+    bool private = true,
   }) async {
     _cacheName = 'HttpToolsInMemoryCache';
     _fs = MemoryFileSystem();

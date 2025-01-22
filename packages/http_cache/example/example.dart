@@ -70,7 +70,7 @@ http.Client _createHttpClient(HttpCache cache) => HttpClientProxy(
       ],
     );
 
-/// This interceptor modifies the cache control header of the response 
+/// This interceptor modifies the cache control header of the response
 /// depending on the request url and the response mime type.
 class _CacheControlInterceptor extends HttpInterceptorWrapper {
   @override
@@ -94,7 +94,7 @@ class _CacheControlInterceptor extends HttpInterceptorWrapper {
     } else {
       // This is a regular request, so we want to cache the response for a short
       // time and only for the current user (private content).
-      // You should prune the cache with [HttpCache.deletePrivateContent()] 
+      // You should prune the cache with [HttpCache.deletePrivateContent()]
       // after the user has logged out.
       cacheControl = CacheControl.privateContent(
         maxAge: const Duration(seconds: 60),

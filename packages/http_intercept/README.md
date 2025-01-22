@@ -182,6 +182,8 @@ used by the `Image.network` widget relies on the
 [`http_image_provider`](https://pub.dev/packages/http_image_provider) package, which 
 allows you to use the `http` package with the `Image` widget, enabling the use of `http_intercept`.
 
+[View full example](https://github.com/ralph-bergmann/HttpTools/blob/main/packages/http_intercept/example/example_flutter.dart)
+
 ### Using with Chopper
 
 To use `http_intercept` with Chopper, you need to create an instance of
@@ -242,6 +244,7 @@ abstract class PostsService extends ChopperService {
   Future<Response> getPost(@Path() String id);
 }
 ```
+[View full example](https://github.com/ralph-bergmann/HttpTools/blob/main/packages/http_intercept/example/example_chopper.dart)
 
 ### Using with Dio
 
@@ -293,6 +296,8 @@ Future<void> main() async {
   print(response);
 }
 ```
+
+[View full example](https://github.com/ralph-bergmann/HttpTools/blob/main/packages/http_intercept/example/example_dio.dart)
 
 ### Using with Retrofit
 
@@ -379,6 +384,8 @@ class Post {
 }
 ```
 
+[View full example](https://github.com/ralph-bergmann/HttpTools/blob/main/packages/http_intercept/example/example_retrofit.dart)
+
 ### Combined with http compatible clients such as `cupertino_http`, `cronet_http` and `retry`.
 
 These examples demonstrate how to use `http_intercept` with HTTP-compatible clients such as 
@@ -452,3 +459,5 @@ http.Client _createHttpClient() {
   );
 }
 ```
+
+[View full example](https://github.com/ralph-bergmann/HttpTools/blob/main/packages/http_intercept/example/example_flutter.dart)

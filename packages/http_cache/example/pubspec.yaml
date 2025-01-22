@@ -1,8 +1,6 @@
-
 name: http_cache_example
-description: A starting point for Dart libraries or applications.
+description: http_cache_example
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
 publish_to: none
 
 environment:

@@ -145,9 +145,11 @@ class CacheControl {
         staleIfError: staleIfError,
       );
 
-  /// Creates a Cache-Control header that prevents caching.
-  /// Use this for sensitive or dynamic content that shouldn't be cached like
-  /// login access tokens or session IDs.
+  /// Creates a Cache-Control header that prevents storing the response in any
+  /// cache. The response MUST NOT be stored in any cache (private or shared).
+  ///
+  /// Use this for sensitive data like personal information, authentication
+  /// tokens, or banking details that should never persist in any cache.
   ///
   /// In private cache: Not stored
   /// In shared cache: Not stored
@@ -164,6 +166,9 @@ class CacheControl {
   /// conditional request (If-None-Match/If-Modified-Since) to validate.
   /// When content hasn't changed, the server responds with 304 Not Modified
   /// without sending the full response body, saving bandwidth.
+  ///
+  /// In private cache: Stored locally for single user
+  /// In shared cache: Stored locally and served to all users
   factory CacheControl.noCache() =>
       CacheControl._(noCache: true, mustRevalidate: true);
 
@@ -172,6 +177,9 @@ class CacheControl {
   ///
   /// Use this for sensitive data like personal information, authentication
   /// tokens, or banking details that should never persist in any cache.
+  ///
+  /// In private cache: Not stored
+  /// In shared cache: Not stored
   factory CacheControl.noStore() => CacheControl._(noStore: true);
 
   /// Creates a new CacheControl instance with updated directive values.

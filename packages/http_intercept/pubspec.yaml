@@ -16,7 +16,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  collection: ^1.19.1
+  collection: ^1.19.0
   http: ^1.2.2
   meta: ^1.15.0
 
