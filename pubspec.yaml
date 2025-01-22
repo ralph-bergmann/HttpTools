@@ -5,6 +5,7 @@ environment:
 
 workspace:
   - packages/http_cache
+  - packages/http_cache/example
   - packages/http_intercept
   - packages/http_logger
 

@@ -179,14 +179,14 @@ extension CacheEntryExtensions on CacheEntry {
   }
 
   /// Determines if a cached response needs revalidation with the origin server.
-  /// 
+  ///
   /// Returns true when:
   /// - no-store is set
   /// - no-cache is set
   /// - No expiration time is set
   /// - must-revalidate is set
   /// - Content is expired
-  /// 
+  ///
   /// Returns false when:
   /// - Content is fresh and has immutable flag
   bool get needsRevalidation {
@@ -209,7 +209,6 @@ extension CacheEntryExtensions on CacheEntry {
 
     return mustRevalidate || isExpired;
   }
-
 
   /// Calculates the expiration time of the response based on the
   /// `Cache-Control: max-age` directive or the `Expires` header.

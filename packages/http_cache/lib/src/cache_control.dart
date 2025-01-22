@@ -94,6 +94,9 @@ class CacheControl {
 
   /// Creates a Cache-Control header for static assets like images
   /// that rarely change. Uses max-age with immutable flag for optimal caching.
+  ///
+  /// In private cache: Stored locally for single user
+  /// In shared cache: Stored locally and served to all users
   factory CacheControl.staticAsset({
     Duration maxAge = const Duration(days: 365),
     Duration? staleWhileRevalidate,
@@ -109,7 +112,10 @@ class CacheControl {
 
   /// Creates a Cache-Control header for dynamic but cacheable API responses
   /// with background revalidation for optimal performance.
-  factory CacheControl.dynamicContent({
+  ///
+  /// In private cache: Stored locally for single user
+  /// In shared cache: Stored locally and served to all users
+  factory CacheControl.sharedContent({
     required Duration maxAge,
     Duration staleWhileRevalidate = const Duration(minutes: 5),
     Duration? staleIfError,
@@ -121,12 +127,38 @@ class CacheControl {
         public: true,
       );
 
+  /// Creates a Cache-Control header for dynamic private but cacheable API
+  /// responses. Use this for user-specific content like user profiles or
+  /// private messages that should not be cached by shared caches.
+  ///
+  /// In private cache: Stored locally for single user
+  /// In shared cache: Not stored
+  factory CacheControl.privateContent({
+    Duration? maxAge,
+    Duration? staleWhileRevalidate,
+    Duration? staleIfError,
+  }) =>
+      CacheControl._(
+        maxAge: maxAge,
+        private: true,
+        staleWhileRevalidate: staleWhileRevalidate,
+        staleIfError: staleIfError,
+      );
+
+  /// Creates a Cache-Control header that prevents caching.
+  /// Use this for sensitive or dynamic content that shouldn't be cached like
+  /// login access tokens or session IDs.
+  ///
+  /// In private cache: Not stored
+  /// In shared cache: Not stored
+  factory CacheControl.sensitiveContent() => CacheControl._(noStore: true);
+
   /// Creates a Cache-Control header that requires revalidation with the origin
   /// server before using cached content. The response CAN be stored in caches,
   /// but MUST be validated on each use.
   ///
   /// Use this when content might change and clients need fresh data, but storing
-  /// in cache is acceptable and (like API responses that update frequently).
+  /// in cache is acceptable (like API responses that update frequently).
   ///
   /// Performance benefit: Allows caches to store the response and send a
   /// conditional request (If-None-Match/If-Modified-Since) to validate.
@@ -135,8 +167,8 @@ class CacheControl {
   factory CacheControl.noCache() =>
       CacheControl._(noCache: true, mustRevalidate: true);
 
-  /// Creates a Cache-Control header that prevents storing the response in any cache.
-  /// The response MUST NOT be stored in any cache (private or shared).
+  /// Creates a Cache-Control header that prevents storing the response in any
+  /// cache. The response MUST NOT be stored in any cache (private or shared).
   ///
   /// Use this for sensitive data like personal information, authentication
   /// tokens, or banking details that should never persist in any cache.

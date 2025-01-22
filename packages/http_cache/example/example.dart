@@ -6,6 +6,7 @@ import 'package:http_cache/http_cache.dart';
 import 'package:http_intercept/http_intercept.dart';
 import 'package:http_logger/http_logger.dart';
 import 'package:logging/logging.dart' hide Level;
+import 'package:mime/mime.dart';
 
 Future<void> main() async {
   // HttpOverrides.global = _HttpOverrides();
@@ -16,9 +17,11 @@ Future<void> main() async {
 
   final cache = HttpCache();
 
+  // create a cache instance which persists the cache entries on disk
   // final dir = Directory('cache');
   // await cache.initLocal(dir);
 
+  // create a cache instance which persists the cache entries in memory
   await cache.initInMemory();
 
   await http.runWithClient(
@@ -36,7 +39,6 @@ Future<void> main() async {
 /// completed. This is important to free up system resources and avoid possible
 /// memory leaks. Reusing the same client keeps the HTTP connection open.
 /// In addition, `_createHttpClient` is not called again for every HTTP request.
-
 Future<void> _myDartApp() async {
   // Instantiate a new HTTP client. This client will be configured to use
   // the interceptors defined in `http.runWithClient` if any are set up.
@@ -68,22 +70,38 @@ http.Client _createHttpClient(HttpCache cache) => HttpClientProxy(
       ],
     );
 
+/// This interceptor modifies the cache control header of the response 
+/// depending on the request url and the response mime type.
 class _CacheControlInterceptor extends HttpInterceptorWrapper {
   @override
   Future<OnResponse> onResponse(http.StreamedResponse response) async {
-    final cacheControlHeader = response.headers[HttpHeaders.cacheControlHeader];
-    if (cacheControlHeader == null) {
-      return OnResponse.next(response);
-    }
+    late final CacheControl cacheControl;
 
-    // Add/override the cache control max-age parameter to cache the response.
-    // In production, there should be some logic to having different caching
-    // strategies for different content/mime types and/or urls.
-    final cacheControl = CacheControl.dynamicContent(
-      maxAge: const Duration(seconds: 60),
-      staleWhileRevalidate: const Duration(seconds: 30),
-      staleIfError: const Duration(seconds: 300),
-    );
+    if (response.request?.url.pathSegments.last == '/login') {
+      // This is a login request, so we don't want to cache the response.
+      cacheControl = CacheControl.sensitiveContent();
+    } else if (extensionFromMime(response.headers[HttpHeaders.cacheControlHeader]!) == 'jpg') {
+      // This is a jpg image, so we want to cache the response for a long time
+      // and for all users (shared content).
+      //
+      // Note: in production, you should test if there is a cache control header
+      // and don't force it with the postfix null assertion "bang" operator (!)
+      cacheControl = CacheControl.sharedContent(
+        maxAge: const Duration(days: 1),
+        staleWhileRevalidate: const Duration(hours: 12),
+        staleIfError: const Duration(days: 2),
+      );
+    } else {
+      // This is a regular request, so we want to cache the response for a short
+      // time and only for the current user (private content).
+      // You should prune the cache with [HttpCache.deletePrivateContent()] 
+      // after the user has logged out.
+      cacheControl = CacheControl.privateContent(
+        maxAge: const Duration(seconds: 60),
+        staleWhileRevalidate: const Duration(seconds: 30),
+        staleIfError: const Duration(seconds: 300),
+      );
+    }
 
     // Create new headers map with the updated cache control
     final newHeaders = Map<String, String>.from(response.headers);
@@ -93,7 +111,7 @@ class _CacheControlInterceptor extends HttpInterceptorWrapper {
   }
 }
 
-// HttpOverrides to see the http(s) traffic in Charles Proxy.
+// HttpOverrides to see the http(s) traffic in debug proxies like Charles Proxy
 // ignore: unused_element
 class _HttpOverrides extends HttpOverrides {
   @override
