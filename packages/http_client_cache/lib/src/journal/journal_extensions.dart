@@ -14,7 +14,7 @@ extension JournalExtension on Journal {
   /// The journal data can be written either as JSON or as a binary buffer.
   ///
   /// - [fs]: The file system to write the journal data to.
-  /// - [asJson]: If true, the journal data is written as JSON. Otherwise, 
+  /// - [asJson]: If true, the journal data is written as JSON. Otherwise,
   ///   it is written as a binary buffer.
   Future<void> writeJournal(FileSystem fs, {bool asJson = false}) async {
     final journalFile = fs.file(_journalFileName);
@@ -31,11 +31,11 @@ extension JournalExtension on Journal {
 
 /// Loads the journal data from the file system.
 ///
-/// The journal data can be read either from a JSON file or from a binary 
+/// The journal data can be read either from a JSON file or from a binary
 /// buffer.
 ///
 /// - [fs]: The file system to read the journal data from.
-/// - [asJson]: If true, the journal data is read from a JSON file. Otherwise, 
+/// - [asJson]: If true, the journal data is read from a JSON file. Otherwise,
 ///   it is read from a binary buffer.
 /// - Returns: The loaded [Journal] object.
 Future<Journal> loadJournal(FileSystem fs, {bool asJson = false}) async {
