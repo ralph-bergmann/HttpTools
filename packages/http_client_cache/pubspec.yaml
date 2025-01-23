@@ -1,8 +1,8 @@
 name: http_client_cache
 description: >-
-  A Dart package for HTTP request caching and network optimization. 
-  Provides flexible caching mechanisms to improve performance and reduce 
-  network load in Dart and Flutter applications.
+  Dart package that seamlessly adds HTTP traffic caching to 
+  improve performance and reduce network load in Dart and 
+  Flutter applications.
 topics:
   - http
   - network

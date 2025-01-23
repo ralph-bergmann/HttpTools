@@ -1,6 +1,7 @@
 name: http_client_logger
 description: >-
-  A Dart package for logging HTTP requests and responses.
+  Dart package that seamlessly adds HTTP traffic logging to 
+  your Dart or Flutter project.
 topics:
   - http
   - network
