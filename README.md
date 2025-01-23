@@ -54,7 +54,7 @@ Future<void> _myDartApp() async {
 }
 ```
 
-### http_logger
+### http_client_logger
 
 The [http_client_logger](https://pub.dev/packages/http_client_logger) package provides an interceptor to log HTTP requests and
 responses.
@@ -86,7 +86,7 @@ void main() {
 }
 ```
 
-### http_cache
+### http_client_cache
 
 The [http_client_cache](https://pub.dev/packages/http_client_cache) package provides caching mechanisms to improve the performance of
 your HTTP requests.
