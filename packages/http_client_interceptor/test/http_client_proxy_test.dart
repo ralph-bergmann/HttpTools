@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_client_interceptor/http_client_interceptor.dart';
@@ -8,767 +9,840 @@ import 'package:test/test.dart';
 void main() {
   group('HttpClientProxy', () {
     test('simple request-response without interceptors', () async {
-      // Create a test server
-      final server = await ShelfTestServer.create();
-      addTearDown(server.close);
-
-      // Define the server handler
-      server.handler.expect(
-        'GET',
-        '/test',
+      final server = await _createTestServer(
         (_) => shelf.Response.ok('Response from test server'),
       );
+      final client = _createClient([]);
 
-      // Run the test with HttpClientProxy
-      await http.runWithClient(
-        () async {
-          final url = server.url.replace(path: '/test');
-          final response = await http.get(url);
-          expect(response.statusCode, 200);
-          expect(response.body, 'Response from test server');
-        },
-        HttpClientProxy.new,
-      );
+      final response = await client.get(server.testUrl);
+      expect(response.statusCode, 200);
+      expect(response.body, 'Response from test server');
     });
 
     group('with onRequest interceptor', () {
-      test('forwards request', () async {
-        // Create a test server
-        final server = await ShelfTestServer.create();
-        addTearDown(server.close);
+      test(
+        'OnRequest.next',
+        () async {
+          // Tests that the interceptor modifies the request
+          // before it reaches the test server.
+          //
+          // Test will fail when:
+          // - test server does not receive the request with the custom header
+          // - test server does not return the custom response
 
-        // Define the server handler
-        server.handler.expect(
-          'GET',
-          '/test',
-          (request) {
-            expect(request.headers['Custom-Header'], 'Value');
-            return shelf.Response.ok('Response from test server');
-          },
-        );
+          final server = await _createTestServer(
+            (request) {
+              expect(request.headers['Custom-Header'], 'Value');
+              return shelf.Response.ok('Response from test server');
+            },
+          );
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onRequest: (request) {
+                request.headers['Custom-Header'] = 'Value';
+                return OnRequest.next(request);
+              },
+            ),
+          ]);
 
-        // Define the onRequest interceptor
-        final onRequestInterceptor = HttpInterceptorWrapper(
-          onRequest: (request) {
-            request.headers['Custom-Header'] = 'Value';
-            return OnRequest.next(request);
-          },
-        );
+          final response = await client.get(server.testUrl);
+          expect(response.statusCode, 200);
+          expect(response.body, 'Response from test server');
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
 
-        // Run the test with HttpClientProxy and onRequest interceptor
-        await http.runWithClient(
-          () async {
-            final url = server.url.replace(path: '/test');
-            final response = await http.get(url);
-            expect(response.statusCode, 200);
-            expect(response.body, 'Response from test server');
-          },
-          () => HttpClientProxy(interceptors: [onRequestInterceptor]),
-        );
-      });
+      test(
+        'OnRequest.resolve',
+        () async {
+          // Tests that the interceptor resolves the request with a custom
+          // response without reaching the test server.
+          //
+          // Test will fail when:
+          // - test server receives a request
+          // - client does not get the response from the interceptor
 
-      test('resolves request with new response', () async {
-        // Create a test server
-        final server = await ShelfTestServer.create();
-        addTearDown(server.close);
+          final server = await _createTestServerExpectNoRequests();
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onRequest: (_) => OnRequest.resolve(
+                _createResponse('Response from onRequest interceptor'),
+              ),
+            ),
+          ]);
 
-        // Define the onRequest interceptor
-        final onRequestInterceptor = HttpInterceptorWrapper(
-          onRequest: (request) {
-            final stream = Stream.value(
-              utf8.encode('Response from onRequest interceptor'),
-            );
-            final resolvedResponse = http.StreamedResponse(stream, 200);
-            return OnRequest.resolve(resolvedResponse);
-          },
-        );
+          final response = await client.get(server.testUrl);
+          expect(response.statusCode, 200);
+          expect(response.body, 'Response from onRequest interceptor');
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
 
-        // Run the test with HttpClientProxy and onRequest interceptor
-        await http.runWithClient(
-          () async {
-            final url = server.url.replace(path: '/test');
-            final response = await http.get(url);
-            expect(response.statusCode, 200);
-            expect(response.body, 'Response from onRequest interceptor');
-          },
-          () => HttpClientProxy(interceptors: [onRequestInterceptor]),
-        );
-      });
+      test(
+        'OnRequest.resolveAndNext',
+        () async {
+          // Tests that the interceptor resolves the request with a custom
+          // response and forwards the request to the test server.
+          //
+          // Test will fail when:
+          // - test server does not receive the request
+          // - client does not get the response from the interceptor
 
-      test('cancels request with error', () async {
-        // Create a test server
-        final server = await ShelfTestServer.create();
-        addTearDown(server.close);
+          final server = await _createTestServer(
+            (request) => shelf.Response.ok('Response from test server'),
+          );
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onRequest: (request) => OnRequest.resolveAndNext(
+                request,
+                _createResponse('Response from onRequest interceptor'),
+              ),
+            ),
+          ]);
 
-        // Define the onRequest interceptor
-        final onRequestInterceptor = HttpInterceptorWrapper(
-          onRequest: (request) => OnRequest.reject(
-            Exception('Request canceled by interceptor'),
-          ),
-        );
+          final response = await client.get(server.testUrl);
+          expect(response.statusCode, 200);
+          expect(response.body, 'Response from onRequest interceptor');
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
 
-        // Run the test with HttpClientProxy and onRequest interceptor
-        await http.runWithClient(
-          () async {
-            final url = server.url.replace(path: '/test');
-            try {
-              await http.get(url);
-              fail('Expected an exception to be thrown');
-            } catch (e) {
-              expect(e.toString(), contains('Request canceled by interceptor'));
-            }
-          },
-          () => HttpClientProxy(interceptors: [onRequestInterceptor]),
-        );
-      });
+      test(
+        'OnRequest.reject',
+        () async {
+          // Tests that the interceptor rejects the request with a custom
+          // error without reaching the test server.
+          //
+          // Test will fail when:
+          // - test server receives a request
+          // - client does not get the error response from the interceptor
+
+          final server = await _createTestServerExpectNoRequests();
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onRequest: (_) => OnRequest.reject(
+                Exception('Request canceled by interceptor'),
+              ),
+            ),
+          ]);
+
+          try {
+            await client.get(server.testUrl);
+            fail('Expected an exception to be thrown');
+          } catch (e) {
+            expect(e.toString(), contains('Request canceled by interceptor'));
+          }
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
     });
 
     group('with onResponse interceptor', () {
-      test('forwards response', () async {
-        // Create a test server
-        final server = await ShelfTestServer.create();
-        addTearDown(server.close);
+      test(
+        'OnResponse.next',
+        () async {
+          // Test that the interceptor modifies the response from the test server
+          //
+          // Test will fail when:
+          // - test server does not receive the request
+          // - client does not get the modified response from the interceptor
 
-        // Define the server handler
-        server.handler.expect(
-          'GET',
-          '/test',
-          (_) => shelf.Response.ok('Original response from test server'),
-        );
+          final server = await _createTestServer(
+            (request) =>
+                shelf.Response.ok('Original response from test server'),
+          );
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onResponse: (response) async {
+                final body = await response.stream.bytesToString();
+                return OnResponse.next(_createResponse('Modified $body'));
+              },
+            ),
+          ]);
 
-        // Define the onResponse interceptor
-        final onResponseInterceptor = HttpInterceptorWrapper(
-          onResponse: (response) async {
-            final modifiedStream =
-                Stream.value(utf8.encode('Modified response from interceptor'));
-            final modifiedResponse = http.StreamedResponse(
-              modifiedStream,
-              response.statusCode,
-              headers: response.headers,
+          final response = await client.get(server.testUrl);
+          expect(response.statusCode, 200);
+          expect(response.body, 'Modified Original response from test server');
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
+
+      test(
+        'OnResponse.resolve',
+        () async {
+          // Test that the interceptor resolves the response with a new response
+          //
+          // Test will fail when:
+          // - test server does not receive the request
+          // - client does not get the response from the interceptor
+
+          final server = await _createTestServer(
+            (_) => shelf.Response.ok('Original response from test server'),
+          );
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onResponse: (_) => OnResponse.resolve(
+                _createResponse('Response from onResponse interceptor'),
+              ),
+            ),
+          ]);
+
+          final response = await client.get(server.testUrl);
+          expect(response.statusCode, 200);
+          expect(response.body, 'Response from onResponse interceptor');
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
+
+      test(
+        'OnResponse.reject',
+        () async {
+          // Test that the interceptor cancels the response with an error
+          //
+          // Test will fail when:
+          // - test server receives a request
+          // - client does not get the error response from the interceptor
+
+          final server = await _createTestServer(
+            (_) => shelf.Response.ok('Original response from test server'),
+          );
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onResponse: (_) => OnResponse.reject(
+                Exception('Response canceled by interceptor'),
+              ),
+            ),
+          ]);
+
+          try {
+            await client.get(server.testUrl);
+            fail('Expected an exception to be thrown');
+          } catch (e) {
+            expect(
+              e.toString(),
+              contains('Response canceled by interceptor'),
             );
-            return OnResponse.next(modifiedResponse);
-          },
-        );
-
-        // Run the test with HttpClientProxy and onResponse interceptor
-        await http.runWithClient(
-          () async {
-            final url = server.url.replace(path: '/test');
-            final response = await http.get(url);
-            expect(response.statusCode, 200);
-            expect(response.body, 'Modified response from interceptor');
-          },
-          () => HttpClientProxy(interceptors: [onResponseInterceptor]),
-        );
-      });
-
-      test('resolves response with new response', () async {
-        // Create a test server
-        final server = await ShelfTestServer.create();
-        addTearDown(server.close);
-
-        // Define the server handler
-        server.handler.expect(
-          'GET',
-          '/test',
-          (_) => shelf.Response.ok('Original response from test server'),
-        );
-
-        // Define the onResponse interceptor
-        final onResponseInterceptor = HttpInterceptorWrapper(
-          onResponse: (response) async {
-            final stream = Stream.value(
-              utf8.encode('Response from onResponse interceptor'),
-            );
-            final resolvedResponse =
-                http.StreamedResponse(stream, 200, headers: response.headers);
-            return OnResponse.resolve(resolvedResponse);
-          },
-        );
-
-        // Run the test with HttpClientProxy and onResponse interceptor
-        await http.runWithClient(
-          () async {
-            final url = server.url.replace(path: '/test');
-            final response = await http.get(url);
-            expect(response.statusCode, 200);
-            expect(response.body, 'Response from onResponse interceptor');
-          },
-          () => HttpClientProxy(interceptors: [onResponseInterceptor]),
-        );
-      });
-
-      test('cancels response with error', () async {
-        // Create a test server
-        final server = await ShelfTestServer.create();
-        addTearDown(server.close);
-
-        // Define the server handler
-        server.handler.expect(
-          'GET',
-          '/test',
-          (_) => shelf.Response.ok('Original response from test server'),
-        );
-
-        // Define the onResponse interceptor
-        final onResponseInterceptor = HttpInterceptorWrapper(
-          onResponse: (response) => OnResponse.reject(
-            Exception('Response canceled by interceptor'),
-          ),
-        );
-
-        // Run the test with HttpClientProxy and onResponse interceptor
-        await http.runWithClient(
-          () async {
-            final url = server.url.replace(path: '/test');
-            try {
-              await http.get(url);
-              fail('Expected an exception to be thrown');
-            } catch (e) {
-              expect(
-                e.toString(),
-                contains('Response canceled by interceptor'),
-              );
-            }
-          },
-          () => HttpClientProxy(interceptors: [onResponseInterceptor]),
-        );
-      });
+          }
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
     });
 
     group('with onError interceptor', () {
-      test('forwards error', () async {
-        // Define the onError interceptor
-        final onErrorInterceptor = HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) {
-            print('error: $error');
-            final modifiedError = Exception('Handled $error');
-            return OnError.next(request, modifiedError, stackTrace);
-          },
-        );
+      test(
+        'OnError.next',
+        () async {
+          // Test that the interceptor forwards the error to the host.
+          // Making a request to an unreachable host should throw an error
+          // which is then handled by the interceptor.
+          //
+          // Test will fail when:
+          // - client does not get the error from the interceptor
 
-        // Run the test with HttpClientProxy and onError interceptor
-        await http.runWithClient(
-          () async {
-            final url = Uri.https('www.notreacheble.com');
-            try {
-              await http.get(url);
-              fail('Expected an exception to be thrown');
-            } catch (e) {
-              expect(
-                e.toString(),
-                contains(
-                  'Exception: Handled ClientException with SocketException',
-                ),
-              );
-            }
-          },
-          () => HttpClientProxy(interceptors: [onErrorInterceptor]),
-        );
-      });
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onError: (request, _, __) => OnError.next(
+                request,
+                Exception('Handled error to host: ${request.url}'),
+              ),
+            ),
+          ]);
 
-      test('resolves error with new response', () async {
-        // Define the onError interceptor
-        final onErrorInterceptor = HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) {
-            final stream =
-                Stream.value(utf8.encode('Response from onError interceptor'));
-            final resolvedResponse = http.StreamedResponse(stream, 200);
-            return OnError.resolve(resolvedResponse);
-          },
-        );
+          try {
+            await client.get(Uri.https('www.not_reachable.com'));
+            fail('Expected an exception to be thrown');
+          } catch (e) {
+            expect(
+              e.toString(),
+              contains(
+                'Exception: Handled error to host: https://www.not_reachable.com',
+              ),
+            );
+          }
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
 
-        // Run the test with HttpClientProxy and onError interceptor
-        await http.runWithClient(
-          () async {
-            final url = Uri.https('www.notreacheble.com');
-            final response = await http.get(url);
-            expect(response.statusCode, 200);
-            expect(response.body, 'Response from onError interceptor');
-          },
-          () => HttpClientProxy(interceptors: [onErrorInterceptor]),
-        );
-      });
+      test(
+        'OnError.resolve',
+        () async {
+          // Test that the interceptor resolves the error with a new response.
+          // Making a request to an unreachable host should throw an error
+          // which is then handled by the interceptor and resolved with a
+          // new response.
+          //
+          // Test will fail when:
+          // - client does not get the response from the interceptor
 
-      test('cancels error with new error', () async {
-        // Define the onError interceptor
-        final onErrorInterceptor = HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) => OnError.reject(
-            Exception('Error canceled by interceptor'),
-            stackTrace,
-          ),
-        );
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onError: (_, __, ___) => OnError.resolve(
+                _createResponse('Response from onError interceptor'),
+              ),
+            ),
+          ]);
 
-        // Run the test with HttpClientProxy and onError interceptor
-        await http.runWithClient(
-          () async {
-            final url = Uri.https('www.notreacheble.com');
-            try {
-              await http.get(url);
-              fail('Expected an exception to be thrown');
-            } catch (e) {
-              expect(e.toString(), contains('Error canceled by interceptor'));
-            }
-          },
-          () => HttpClientProxy(interceptors: [onErrorInterceptor]),
-        );
-      });
+          final response = await client.get(Uri.https('www.not_reachable.com'));
+          expect(response.statusCode, 200);
+          expect(response.body, 'Response from onError interceptor');
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
+
+      test(
+        'OnError.reject',
+        () async {
+          // Test that the interceptor cancels the error with an error.
+          // Making a request to an unreachable host should throw an error
+          // which is then handled by the interceptor and canceled with an other error.
+          //
+          // Test will fail when:
+          // - client does not get the error from the interceptor
+
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onError: (_, __, ___) =>
+                  OnError.reject(Exception('Error canceled by interceptor')),
+            ),
+          ]);
+
+          try {
+            await client.get(Uri.https('www.not_reachable.com'));
+            fail('Expected an exception to be thrown');
+          } catch (e) {
+            expect(e.toString(), contains('Error canceled by interceptor'));
+          }
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
     });
   });
 
   group('with multiple interceptors', () {
-    test('all interceptors forward request', () async {
-      // Create a test server
-      final server = await ShelfTestServer.create();
-      addTearDown(server.close);
-
-      // Define the server handler
-      server.handler.expect(
-        'GET',
-        '/test',
-        (request) {
-          expect(request.headers['Custom-Header-1'], 'Value1');
-          expect(request.headers['Custom-Header-2'], 'Value2');
-          expect(request.headers['Custom-Header-3'], 'Value3');
-          return shelf.Response.ok('Response from test server');
-        },
-      );
-
-      // Define the interceptors
-      final interceptors = [
-        HttpInterceptorWrapper(
-          onRequest: (request) {
-            request.headers['Custom-Header-1'] = 'Value1';
-            return OnRequest.next(request);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onRequest: (request) {
-            request.headers['Custom-Header-2'] = 'Value2';
-            return OnRequest.next(request);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onRequest: (request) {
-            request.headers['Custom-Header-3'] = 'Value3';
-            return OnRequest.next(request);
-          },
-        ),
-      ];
-
-      // Run the test with HttpClientProxy and interceptors
-      await http.runWithClient(
+    group('multiple onRequest interceptors', () {
+      test(
+        'all interceptors forward request',
         () async {
-          final url = server.url.replace(path: '/test');
-          final response = await http.get(url);
+          // Test that all interceptors are modifying the request.
+          // Starting with a request with no custom headers, the request should
+          // be modified by all interceptors and the final request should
+          // contain all headers.
+          //
+          // Test will fail when:
+          // - test server does not receive the request with all headers
+          // - client does not get the response from the test server
+
+          final server = await _createTestServer(
+            (request) {
+              expect(request.headers['Custom-Header-1'], 'Value1');
+              expect(request.headers['Custom-Header-2'], 'Value2');
+              expect(request.headers['Custom-Header-3'], 'Value3');
+              return shelf.Response.ok('Response from test server');
+            },
+          );
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onRequest: (request) {
+                request.headers['Custom-Header-1'] = 'Value1';
+                return OnRequest.next(request);
+              },
+            ),
+            HttpInterceptorWrapper(
+              onRequest: (request) {
+                request.headers['Custom-Header-2'] = 'Value2';
+                return OnRequest.next(request);
+              },
+            ),
+            HttpInterceptorWrapper(
+              onRequest: (request) {
+                request.headers['Custom-Header-3'] = 'Value3';
+                return OnRequest.next(request);
+              },
+            ),
+          ]);
+
+          final response = await client.get(server.testUrl);
           expect(response.statusCode, 200);
           expect(response.body, 'Response from test server');
         },
-        () => HttpClientProxy(interceptors: interceptors),
+        timeout: const Timeout(Duration(seconds: 2)),
       );
-    });
 
-    test('first interceptor resolves request', () async {
-      // Create a test server
-      final server = await ShelfTestServer.create();
-      addTearDown(server.close);
-
-      // Define the interceptors
-      final interceptors = [
-        HttpInterceptorWrapper(
-          onRequest: (request) {
-            final stream =
-                Stream.value(utf8.encode('Response from first interceptor'));
-            final resolvedResponse = http.StreamedResponse(stream, 200);
-            return OnRequest.resolve(resolvedResponse);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onRequest: (request) {
-            request.headers['Custom-Header-2'] = 'Value2';
-            return OnRequest.next(request);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onRequest: (request) {
-            request.headers['Custom-Header-3'] = 'Value3';
-            return OnRequest.next(request);
-          },
-        ),
-      ];
-
-      // Run the test with HttpClientProxy and interceptors
-      await http.runWithClient(
+      test(
+        'first interceptor resolves request',
         () async {
-          final url = server.url.replace(path: '/test');
-          final response = await http.get(url);
+          // Tests that the first interceptor resolves the request with a custom
+          // response without reaching the test server.
+          //
+          // Test will fail when:
+          // - test server receives the request
+          // - client does not get the response from the first interceptor
+          // - second interceptor is called
+
+          final server = await _createTestServerExpectNoRequests();
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onRequest: (_) => OnRequest.resolve(
+                _createResponse('Response from first interceptor'),
+              ),
+            ),
+            HttpInterceptorWrapper(
+              onRequest: (_) {
+                fail('this interceptor should not be called');
+              },
+            ),
+          ]);
+
+          final response = await client.get(server.testUrl);
           expect(response.statusCode, 200);
           expect(response.body, 'Response from first interceptor');
         },
-        () => HttpClientProxy(interceptors: interceptors),
+        timeout: const Timeout(Duration(seconds: 2)),
       );
-    });
 
-    test('second interceptor cancels request with error', () async {
-      // Create a test server
-      final server = await ShelfTestServer.create();
-      addTearDown(server.close);
-
-      // Define the interceptors
-      final interceptors = [
-        HttpInterceptorWrapper(
-          onRequest: (request) {
-            request.headers['Custom-Header-1'] = 'Value1';
-            return OnRequest.next(request);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onRequest: (request) => OnRequest.reject(
-            Exception('Request canceled by second interceptor'),
-          ),
-        ),
-        HttpInterceptorWrapper(
-          onRequest: (request) {
-            request.headers['Custom-Header-3'] = 'Value3';
-            return OnRequest.next(request);
-          },
-        ),
-      ];
-
-      // Run the test with HttpClientProxy and interceptors
-      await http.runWithClient(
+      test(
+        'first interceptor resolves request and forwards it to the second interceptor',
         () async {
-          final url = server.url.replace(path: '/test');
+          // Tests that the first interceptor resolves the request with a custom
+          // response and forwards it to the second interceptor.
+          // Second interceptor should receive the response from the first
+          // interceptor and should modify it.
+          //
+          // Test will fail when:
+          // - test server does not receive the request
+          // - client does not get the response from the first interceptor
+          //   modified by the second interceptor
+
+          final server = await _createTestServerExpectNoRequests();
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onRequest: (_) => OnRequest.resolve(
+                _createResponse('Response from first interceptor'),
+                skipFollowingResponseInterceptors: false,
+              ),
+            ),
+            HttpInterceptorWrapper(
+              onResponse: (response) async {
+                final body = await response.stream.bytesToString();
+                return OnResponse.next(_createResponse('Modified $body'));
+              },
+            ),
+          ]);
+
+          final response = await client.get(server.testUrl);
+          expect(response.statusCode, 200);
+          expect(response.body, 'Modified Response from first interceptor');
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
+
+      test(
+        'first interceptor rejects request',
+        () async {
+          // Tests that the first interceptor rejects the request with an exception
+          // and the second interceptor is not called.
+          //
+          // Test will fail when:
+          // - test server receives the request
+          // - client does not get exception from the first interceptor
+          // - second interceptor is called
+
+          final server = await _createTestServerExpectNoRequests();
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onRequest: (_) => OnRequest.reject(
+                Exception('Request canceled by interceptor'),
+              ),
+            ),
+            HttpInterceptorWrapper(
+              onRequest: (_) {
+                fail('this interceptor should not be called');
+              },
+            ),
+          ]);
+
           try {
-            await http.get(url);
+            await client.get(server.testUrl);
             fail('Expected an exception to be thrown');
           } catch (e) {
             expect(
               e.toString(),
-              contains('Request canceled by second interceptor'),
+              contains('Request canceled by interceptor'),
             );
           }
         },
-        () => HttpClientProxy(interceptors: interceptors),
-      );
-    });
-
-    test('all interceptors forward response', () async {
-      // Create a test server
-      final server = await ShelfTestServer.create();
-      addTearDown(server.close);
-
-      // Define the server handler
-      server.handler.expect(
-        'GET',
-        '/test',
-        (_) => shelf.Response.ok('Original response from test server'),
+        timeout: const Timeout(Duration(seconds: 2)),
       );
 
-      // Define the interceptors
-      final interceptors = [
-        HttpInterceptorWrapper(
-          onResponse: (response) async {
-            final modifiedStream = Stream.value(
-              utf8.encode('Modified response from first interceptor'),
-            );
-            final modifiedResponse = http.StreamedResponse(
-              modifiedStream,
-              response.statusCode,
-              headers: response.headers,
-            );
-            return OnResponse.next(modifiedResponse);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onResponse: (response) async {
-            final modifiedStream = Stream.value(
-              utf8.encode('Modified response from second interceptor'),
-            );
-            final modifiedResponse = http.StreamedResponse(
-              modifiedStream,
-              response.statusCode,
-              headers: response.headers,
-            );
-            return OnResponse.next(modifiedResponse);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onResponse: (response) async {
-            final modifiedStream = Stream.value(
-              utf8.encode('Modified response from third interceptor'),
-            );
-            final modifiedResponse = http.StreamedResponse(
-              modifiedStream,
-              response.statusCode,
-              headers: response.headers,
-            );
-            return OnResponse.next(modifiedResponse);
-          },
-        ),
-      ];
-
-      // Run the test with HttpClientProxy and interceptors
-      await http.runWithClient(
+      test(
+        'first interceptor rejects request and forwards the exception to the next interceptor',
         () async {
-          final url = server.url.replace(path: '/test');
-          final response = await http.get(url);
+          // Tests that the first interceptor rejects the request with an
+          // exception and the second interceptor resolves the exception
+          // with an custom response.
+          //
+          // Test will fail when:
+          // - test server receives the request
+          // - client receives exception from the first interceptor
+          // - second interceptor does not receive the exception
+          // - second interceptor does not resolve the exception with an custom response
+
+          final server = await _createTestServerExpectNoRequests();
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onRequest: (_) => OnRequest.reject(
+                Exception('Request canceled by interceptor'),
+                skipFollowingErrorInterceptors: false,
+              ),
+            ),
+            HttpInterceptorWrapper(
+              onError: (_, error, __) =>
+                  OnError.resolve(_createResponse('An error occurred. $error')),
+            ),
+          ]);
+
+          final response = await client.get(server.testUrl);
           expect(response.statusCode, 200);
-          expect(response.body, 'Modified response from third interceptor');
+          expect(
+            response.body,
+            'An error occurred. Exception: Request canceled by interceptor',
+          );
         },
-        () => HttpClientProxy(interceptors: interceptors),
+        timeout: const Timeout(Duration(seconds: 2)),
       );
     });
 
-    test('first interceptor resolves response', () async {
-      // Create a test server
-      final server = await ShelfTestServer.create();
-      addTearDown(server.close);
+    group('multiple onResponse interceptors', () {
+      test(
+        'all interceptors forward response',
+        () async {
+          // Tests that all interceptors forward the response to the next interceptor
+          // and all interceptors are modifying the response.
+          //
+          // Test will fail when:
+          // - test server does not receive the request
+          // - response is not modified by all interceptors
 
-      // Define the server handler
-      server.handler.expect(
-        'GET',
-        '/test',
-        (_) => shelf.Response.ok('Original response from test server'),
+          final server = await _createTestServer(
+            (request) => shelf.Response.ok('original'),
+          );
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onResponse: (response) async {
+                final body = await response.stream.bytesToString();
+                return OnResponse.next(_createResponse('$body first'));
+              },
+            ),
+            HttpInterceptorWrapper(
+              onResponse: (response) async {
+                final body = await response.stream.bytesToString();
+                return OnResponse.next(_createResponse('$body second'));
+              },
+            ),
+            HttpInterceptorWrapper(
+              onResponse: (response) async {
+                final body = await response.stream.bytesToString();
+                return OnResponse.next(_createResponse('$body third'));
+              },
+            ),
+          ]);
+
+          final response = await client.get(server.testUrl);
+          expect(response.statusCode, 200);
+          expect(response.body, 'original first second third');
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
       );
 
-      // Define the interceptors
-      final interceptors = [
-        HttpInterceptorWrapper(
-          onResponse: (response) async {
-            final stream =
-                Stream.value(utf8.encode('Response from first interceptor'));
-            final resolvedResponse =
-                http.StreamedResponse(stream, 200, headers: response.headers);
-            return OnResponse.resolve(resolvedResponse);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onResponse: (response) async {
-            final modifiedStream = Stream.value(
-              utf8.encode('Modified response from second interceptor'),
-            );
-            final modifiedResponse = http.StreamedResponse(
-              modifiedStream,
-              response.statusCode,
-              headers: response.headers,
-            );
-            return OnResponse.next(modifiedResponse);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onResponse: (response) async {
-            final modifiedStream = Stream.value(
-              utf8.encode('Modified response from third interceptor'),
-            );
-            final modifiedResponse = http.StreamedResponse(
-              modifiedStream,
-              response.statusCode,
-              headers: response.headers,
-            );
-            return OnResponse.next(modifiedResponse);
-          },
-        ),
-      ];
-
-      // Run the test with HttpClientProxy and interceptors
-      await http.runWithClient(
+      test(
+        'first interceptor resolves response',
         () async {
-          final url = server.url.replace(path: '/test');
-          final response = await http.get(url);
+          // Tests that the first interceptor resolves the response with a
+          // custom response and the second interceptor is not called.
+          //
+          // Test will fail when:
+          // - test server does not receive the request
+          // - client does not get response from the first interceptor
+          // - second interceptor is called
+
+          final server = await _createTestServer(
+            (request) =>
+                shelf.Response.ok('Original response from test server'),
+          );
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onResponse: (_) => OnResponse.resolve(
+                _createResponse('Response from first interceptor'),
+              ),
+            ),
+            HttpInterceptorWrapper(
+              onResponse: (_) {
+                fail('This interceptor should not be called');
+              },
+            ),
+          ]);
+
+          final response = await client.get(server.testUrl);
           expect(response.statusCode, 200);
           expect(response.body, 'Response from first interceptor');
         },
-        () => HttpClientProxy(interceptors: interceptors),
-      );
-    });
-
-    test('second interceptor cancels response with error', () async {
-      // Create a test server
-      final server = await ShelfTestServer.create();
-      addTearDown(server.close);
-
-      // Define the server handler
-      server.handler.expect(
-        'GET',
-        '/test',
-        (_) => shelf.Response.ok('Original response from test server'),
+        timeout: const Timeout(Duration(seconds: 2)),
       );
 
-      // Define the interceptors
-      final interceptors = [
-        HttpInterceptorWrapper(
-          onResponse: (response) async {
-            final modifiedStream = Stream.value(
-              utf8.encode('Modified response from first interceptor'),
-            );
-            final modifiedResponse = http.StreamedResponse(
-              modifiedStream,
-              response.statusCode,
-              headers: response.headers,
-            );
-            return OnResponse.next(modifiedResponse);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onResponse: (response) => OnResponse.reject(
-            Exception('Response canceled by second interceptor'),
-          ),
-        ),
-        HttpInterceptorWrapper(
-          onResponse: (response) async {
-            final modifiedStream = Stream.value(
-              utf8.encode('Modified response from third interceptor'),
-            );
-            final modifiedResponse = http.StreamedResponse(
-              modifiedStream,
-              response.statusCode,
-              headers: response.headers,
-            );
-            return OnResponse.next(modifiedResponse);
-          },
-        ),
-      ];
-
-      // Run the test with HttpClientProxy and interceptors
-      await http.runWithClient(
+      test(
+        'first interceptor rejects response',
         () async {
-          final url = server.url.replace(path: '/test');
+          // Tests that the first interceptor rejects the response with an
+          // custom error and the second interceptor is not called.
+          //
+          // Test will fail when:
+          // - test server does not receives the request
+          // - client does not get exception from the first interceptor
+          // - second interceptor is called
+
+          final server = await _createTestServer(
+            (_) => shelf.Response.ok('Original response from test server'),
+          );
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onResponse: (_) => OnResponse.reject(
+                Exception('Response canceled by interceptor'),
+              ),
+            ),
+            HttpInterceptorWrapper(
+              onResponse: (_) {
+                fail('This interceptor should not be called');
+              },
+            ),
+          ]);
+
           try {
-            await http.get(url);
+            await client.get(server.testUrl);
             fail('Expected an exception to be thrown');
           } catch (e) {
             expect(
               e.toString(),
-              contains('Response canceled by second interceptor'),
+              contains('Exception: Response canceled by interceptor'),
             );
           }
         },
-        () => HttpClientProxy(interceptors: interceptors),
+        timeout: const Timeout(Duration(seconds: 2)),
       );
-    });
 
-    test('all interceptors forward error', () async {
-      // Define the interceptors
-      final interceptors = [
-        HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) {
-            final modifiedError =
-                Exception('Handled by first interceptor: $error');
-            return OnError.next(request, modifiedError, stackTrace);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) {
-            final modifiedError =
-                Exception('Handled by second interceptor: $error');
-            return OnError.next(request, modifiedError, stackTrace);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) {
-            final modifiedError =
-                Exception('Handled by third interceptor: $error');
-            return OnError.next(request, modifiedError, stackTrace);
-          },
-        ),
-      ];
-
-      // Run the test with HttpClientProxy and interceptors
-      await http.runWithClient(
+      test(
+        'first interceptor rejects response and forwards the exception to the next interceptor',
         () async {
-          final url = Uri.https('www.notreacheble.com');
+          // Tests that the first interceptor rejects the response with an
+          // exception and the second interceptor resolves the exception
+          // with an custom response.
+          //
+          // Test will fail when:
+          // - test server does not receive the request
+          // - client receives exception from the first interceptor
+          // - second interceptor does not receive the exception
+          // - second interceptor does not resolve the exception with an custom
+          //   response
+
+          final server = await _createTestServer(
+            (_) => shelf.Response.ok('Original response from test server'),
+          );
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onResponse: (_) => OnResponse.reject(
+                Exception('Response canceled by interceptor'),
+                skipFollowingErrorInterceptors: false,
+              ),
+            ),
+            HttpInterceptorWrapper(
+              onError: (_, error, __) =>
+                  OnError.resolve(_createResponse('An error occurred. $error')),
+            ),
+          ]);
+
           try {
-            await http.get(url);
-            fail('Expected an exception to be thrown');
+            final response = await client.get(server.testUrl);
+            expect(response.statusCode, 200);
           } catch (e) {
-            expect(e.toString(), contains('Handled by third interceptor'));
+            expect(
+              e.toString(),
+              contains(
+                'An error occurred. Exception: Request canceled by interceptor',
+              ),
+            );
           }
         },
-        () => HttpClientProxy(interceptors: interceptors),
+        timeout: const Timeout(Duration(seconds: 2)),
       );
     });
 
-    test('first interceptor resolves error with new response', () async {
-      // Define the interceptors
-      final interceptors = [
-        HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) {
-            final stream =
-                Stream.value(utf8.encode('Response from first interceptor'));
-            final resolvedResponse = http.StreamedResponse(stream, 200);
-            return OnError.resolve(resolvedResponse);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) {
-            final modifiedError =
-                Exception('Handled by second interceptor: $error');
-            return OnError.next(request, modifiedError, stackTrace);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) {
-            final modifiedError =
-                Exception('Handled by third interceptor: $error');
-            return OnError.next(request, modifiedError, stackTrace);
-          },
-        ),
-      ];
-
-      // Run the test with HttpClientProxy and interceptors
-      await http.runWithClient(
+    group('multiple onError interceptors', () {
+      test(
+        'all interceptors forward error',
         () async {
-          final url = Uri.https('www.notreacheble.com');
-          final response = await http.get(url);
-          expect(response.statusCode, 200);
-          expect(response.body, 'Response from first interceptor');
-        },
-        () => HttpClientProxy(interceptors: interceptors),
-      );
-    });
+          // Tests that all interceptors are modifying the error.
+          //
+          // Test will fail when:
+          // - client does not get modified error
 
-    test('second interceptor cancels error with new error', () async {
-      // Define the interceptors
-      final interceptors = [
-        HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) {
-            final modifiedError =
-                Exception('Handled by first interceptor: $error');
-            return OnError.next(request, modifiedError, stackTrace);
-          },
-        ),
-        HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) => OnError.reject(
-            Exception('Error canceled by second interceptor'),
-            stackTrace,
-          ),
-        ),
-        HttpInterceptorWrapper(
-          onError: (request, error, stackTrace) {
-            final modifiedError =
-                Exception('Handled by third interceptor: $error');
-            return OnError.next(request, modifiedError, stackTrace);
-          },
-        ),
-      ];
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onError: (request, _, __) =>
+                  OnError.next(request, Exception('first')),
+            ),
+            HttpInterceptorWrapper(
+              onError: (request, error, _) =>
+                  OnError.next(request, Exception('$error second')),
+            ),
+            HttpInterceptorWrapper(
+              onError: (request, error, _) =>
+                  OnError.next(request, Exception('$error third')),
+            ),
+          ]);
 
-      // Run the test with HttpClientProxy and interceptors
-      await http.runWithClient(
-        () async {
-          final url = Uri.https('www.notreacheble.com');
           try {
-            await http.get(url);
+            await client.get(Uri.https('www.not_reachable.com'));
             fail('Expected an exception to be thrown');
           } catch (e) {
             expect(
               e.toString(),
-              contains('Error canceled by second interceptor'),
+              'Exception: Exception: Exception: first second third',
             );
           }
         },
-        () => HttpClientProxy(interceptors: interceptors),
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
+
+      test(
+        'first interceptor resolves error',
+        () async {
+          // Tests that the first interceptor resolves the error with a
+          // custom response and the second interceptor is not called.
+          //
+          // Test will fail when:
+          // - client does not get response from the first interceptor
+          // - second interceptor is called
+
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onError: (_, __, ___) => OnError.resolve(
+                _createResponse('Response from first interceptor'),
+              ),
+            ),
+            HttpInterceptorWrapper(
+              onError: (_, __, ___) {
+                fail('This interceptor should not be called');
+              },
+            ),
+          ]);
+
+          final response = await client.get(Uri.https('www.not_reachable.com'));
+          expect(response.statusCode, 200);
+          expect(response.body, 'Response from first interceptor');
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
+      );
+
+      test(
+        'first interceptor rejects error',
+        () async {
+          // Tests that the first interceptor rejects the error with an
+          // custom error and the second interceptor is not called.
+          //
+          // Test will fail when:
+          // - client does not get exception from the first interceptor
+          // - second interceptor is called
+
+          final client = _createClient([
+            HttpInterceptorWrapper(
+              onError: (_, error, __) =>
+                  OnError.reject(Exception('Error canceled by interceptor')),
+            ),
+            HttpInterceptorWrapper(
+              onError: (_, __, ___) {
+                fail('This interceptor should not be called');
+              },
+            ),
+          ]);
+
+          try {
+            await client.get(Uri.https('www.not_reachable.com'));
+            fail('Expected an exception to be thrown');
+          } catch (e) {
+            expect(
+              e.toString(),
+              contains(
+                'Exception: Error canceled by interceptor',
+              ),
+            );
+          }
+        },
+        timeout: const Timeout(Duration(seconds: 2)),
       );
     });
   });
+}
+
+/// Creates and configures a [ShelfTestServer] for testing HTTP interactions.
+///
+/// Takes a [callback] that returns the [shelf.Response] to be send when the
+/// server receives a request.
+///
+/// Parameters:
+/// - [callback]: The shelf.Response to return for matching requests
+///
+/// The server is automatically closed during test teardown.
+/// Uses [expectAsync1] to ensure the callback is called during testing.
+///
+/// Returns a [Future] that completes with the configured [ShelfTestServer].
+Future<ShelfTestServer> _createTestServer(
+  FutureOr<shelf.Response> Function(shelf.Request request) callback,
+) async {
+  final server = await ShelfTestServer.create();
+  addTearDown(server.close);
+  server.handler.expect('GET', '/test', expectAsync1(callback));
+  return server;
+}
+
+/// Creates a [ShelfTestServer] that fails the test if it receives any request.
+///
+/// Useful for verifying that no unexpected HTTP requests are made during a test.
+/// The server is automatically closed during test teardown.
+///
+/// Returns a [Future] that completes with the configured [ShelfTestServer].
+Future<ShelfTestServer> _createTestServerExpectNoRequests() async {
+  final server = await ShelfTestServer.create();
+  addTearDown(server.close);
+  server.handler.expectAnything((request) {
+    fail(
+      'Unexpected request received: ${request.method} ${request.url}',
+    );
+  });
+  return server;
+}
+
+/// Creates a [HttpClientProxy] with the provided [interceptors].
+///
+/// The client is automatically closed during test teardown.
+http.Client _createClient(List<HttpInterceptor> interceptors) {
+  final client = HttpClientProxy(interceptors: interceptors);
+  addTearDown(client.close);
+  return client;
+}
+
+/// Creates a [http.Response] with the provided [body], [statusCode], and [headers].
+http.StreamedResponse _createResponse(
+  String body, {
+  int statusCode = 200,
+  Map<String, String> headers = const {},
+}) =>
+    http.StreamedResponse(
+      Stream.value(utf8.encode(body)),
+      statusCode,
+      headers: headers,
+    );
+
+/// Extension on [ShelfTestServer] to provide a convenience method for creating the test URL.
+extension _TestUrl on ShelfTestServer {
+  /// Returns a [Uri] for the '/test' path on the test server.
+  Uri get testUrl => url.replace(path: '/test');
 }

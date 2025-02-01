@@ -56,7 +56,7 @@ class OnResponseResolve extends OnResponse {
 ///
 /// The response will not be processed, instead, `error` will be returned to
 /// the caller.
-/// Following interceptors are skipped unless
+/// Following error interceptors are skipped unless
 /// `skipFollowingErrorInterceptors` is false.
 @immutable
 class OnResponseReject extends OnResponse {

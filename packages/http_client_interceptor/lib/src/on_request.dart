@@ -46,7 +46,7 @@ class OnRequestNext extends OnRequest {
 ///
 /// The request will not be invoked, instead, `response` will be returned to
 /// the caller.
-/// Following interceptors are skipped unless
+/// Following response interceptors are skipped unless
 /// `skipFollowingResponseInterceptors` is false.
 @immutable
 class OnRequestResolve extends OnRequest {
@@ -59,13 +59,13 @@ class OnRequestResolve extends OnRequest {
   final bool skipFollowingResponseInterceptors;
 }
 
-/// Completes the request with `response` but also forwards the
-/// `request` to the next interceptor. Needed for `package:http_cache`.
+/// Completes the request with `response` but also invokes the
+/// `request`. Needed for `package:http_cache`.
 ///
-/// The request will not be invoked, instead, `response` will be returned to
+/// The request will be invoked, but `response` will be returned to
 /// the caller.
-/// Following interceptors are skipped unless
-/// `skipFollowingResponseInterceptors` is false.
+/// Following response interceptors are skipped unless
+/// `skipFollowingErrorInterceptors` is false.
 @immutable
 class OnRequestResolveAndNext extends OnRequest {
   const OnRequestResolveAndNext(
@@ -83,7 +83,7 @@ class OnRequestResolveAndNext extends OnRequest {
 ///
 /// The request will not be invoked, instead, `error` will be returned to
 /// the caller.
-/// Following interceptors are skipped unless
+/// Following error interceptors are skipped unless
 /// `skipFollowingErrorInterceptors` is false.
 @immutable
 class OnRequestReject extends OnRequest {

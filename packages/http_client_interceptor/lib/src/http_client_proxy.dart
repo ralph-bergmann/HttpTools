@@ -140,7 +140,7 @@ class HttpClientProxy extends BaseClient {
         StreamedResponse? response;
 
         // If true, the request will proceed through the interceptor chain even
-        // if resolved. Needed for package:http_cache
+        // if resolved. Needed for package:http_client_cache
         var proceedAfterResolve = false;
 
         try {
@@ -227,10 +227,18 @@ class HttpClientProxy extends BaseClient {
                   // the loop
                   completer.complete(response);
                   break loop;
-                case OnResponseReject(error: final error):
-                  // Complete the request with an error and break the loop
-                  completer.completeError(error);
-                  break loop;
+                case OnResponseReject(
+                    error: final error,
+                    skipFollowingErrorInterceptors: final bool skipFollowing,
+                  ):
+                  if (skipFollowing) {
+                    // Complete the request with an error and break the loop
+                    completer.completeError(error);
+                    break loop;
+                  } else {
+                    // Throw the error to be caught by the catch block
+                    throw error;
+                  }
               }
             }
           }
@@ -286,9 +294,7 @@ class HttpClientProxy extends BaseClient {
   /// see [Client.close]
   @override
   Future<void> close() async {
-    for (final interceptor in interceptors ?? <HttpInterceptor>[]) {
-      interceptor.dispose();
-    }
+    interceptors?.forEach((interceptor) => interceptor.dispose());
     innerClient.close();
   }
 }
