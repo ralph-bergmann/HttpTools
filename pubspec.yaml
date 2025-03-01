@@ -8,6 +8,7 @@ environment:
 
 workspace:
   - packages/http_client_cache
+  - packages/http_client_cache_devtools_extension
   - packages/http_client_cache/example
   - packages/http_client_interceptor
   - packages/http_client_interceptor/example
