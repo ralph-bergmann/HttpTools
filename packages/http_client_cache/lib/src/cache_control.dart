@@ -99,13 +99,17 @@ class CacheControl {
   /// In shared cache: Stored locally and served to all users
   factory CacheControl.staticAsset({
     Duration maxAge = const Duration(days: 365),
+    bool noCache = false,
+    bool noStore = false,
     Duration? staleWhileRevalidate,
     Duration? staleIfError,
   }) =>
       CacheControl._(
         maxAge: maxAge,
-        immutable: true,
+        noCache: noCache,
+        noStore: noStore,
         public: true,
+        immutable: true,
         staleWhileRevalidate: staleWhileRevalidate,
         staleIfError: staleIfError,
       );
@@ -117,14 +121,18 @@ class CacheControl {
   /// In shared cache: Stored locally and served to all users
   factory CacheControl.sharedContent({
     required Duration maxAge,
+    bool noCache = false,
+    bool noStore = false,
     Duration staleWhileRevalidate = const Duration(minutes: 5),
     Duration? staleIfError,
   }) =>
       CacheControl._(
         maxAge: maxAge,
+        noCache: noCache,
+        noStore: noStore,
+        public: true,
         staleWhileRevalidate: staleWhileRevalidate,
         staleIfError: staleIfError,
-        public: true,
       );
 
   /// Creates a Cache-Control header for dynamic private but cacheable API
@@ -135,11 +143,15 @@ class CacheControl {
   /// In shared cache: Not stored
   factory CacheControl.privateContent({
     Duration? maxAge,
+    bool noCache = false,
+    bool noStore = false,
     Duration? staleWhileRevalidate,
     Duration? staleIfError,
   }) =>
       CacheControl._(
         maxAge: maxAge,
+        noCache: noCache,
+        noStore: noStore,
         private: true,
         staleWhileRevalidate: staleWhileRevalidate,
         staleIfError: staleIfError,
@@ -169,8 +181,7 @@ class CacheControl {
   ///
   /// In private cache: Stored locally for single user
   /// In shared cache: Stored locally and served to all users
-  factory CacheControl.noCache() =>
-      CacheControl._(noCache: true, mustRevalidate: true);
+  factory CacheControl.noCache() => CacheControl._(noCache: true, mustRevalidate: true);
 
   /// Creates a Cache-Control header that prevents storing the response in any
   /// cache. The response MUST NOT be stored in any cache (private or shared).
