@@ -2,12 +2,13 @@
 //  Generated code. Do not modify.
 //  source: journal.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -17,14 +18,7 @@ import 'dart:typed_data' as $typed_data;
 const Journal$json = {
   '1': 'Journal',
   '2': [
-    {
-      '1': 'entries',
-      '3': 1,
-      '4': 3,
-      '5': 11,
-      '6': '.journal.Journal.EntriesEntry',
-      '10': 'entries'
-    },
+    {'1': 'entries', '3': 1, '4': 3, '5': 11, '6': '.journal.Journal.EntriesEntry', '10': 'entries'},
   ],
   '3': [Journal_EntriesEntry$json],
 };
@@ -34,14 +28,7 @@ const Journal_EntriesEntry$json = {
   '1': 'EntriesEntry',
   '2': [
     {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
-    {
-      '1': 'value',
-      '3': 2,
-      '4': 1,
-      '5': 11,
-      '6': '.journal.JournalEntry',
-      '10': 'value'
-    },
+    {'1': 'value', '3': 2, '4': 1, '5': 11, '6': '.journal.JournalEntry', '10': 'value'},
   ],
   '7': {'7': true},
 };
@@ -57,14 +44,7 @@ const JournalEntry$json = {
   '1': 'JournalEntry',
   '2': [
     {'1': 'cacheKey', '3': 1, '4': 1, '5': 9, '10': 'cacheKey'},
-    {
-      '1': 'cacheEntries',
-      '3': 2,
-      '4': 3,
-      '5': 11,
-      '6': '.journal.JournalEntry.CacheEntriesEntry',
-      '10': 'cacheEntries'
-    },
+    {'1': 'cacheEntries', '3': 2, '4': 3, '5': 11, '6': '.journal.JournalEntry.CacheEntriesEntry', '10': 'cacheEntries'},
   ],
   '3': [JournalEntry_CacheEntriesEntry$json],
 };
@@ -74,14 +54,7 @@ const JournalEntry_CacheEntriesEntry$json = {
   '1': 'CacheEntriesEntry',
   '2': [
     {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
-    {
-      '1': 'value',
-      '3': 2,
-      '4': 1,
-      '5': 11,
-      '6': '.journal.CacheEntry',
-      '10': 'value'
-    },
+    {'1': 'value', '3': 2, '4': 1, '5': 11, '6': '.journal.CacheEntry', '10': 'value'},
   ],
   '7': {'7': true},
 };
@@ -98,48 +71,14 @@ const CacheEntry$json = {
   '1': 'CacheEntry',
   '2': [
     {'1': 'cacheKey', '3': 1, '4': 1, '5': 9, '10': 'cacheKey'},
-    {
-      '1': 'creationDate',
-      '3': 2,
-      '4': 1,
-      '5': 11,
-      '6': '.google.protobuf.Timestamp',
-      '10': 'creationDate'
-    },
+    {'1': 'creationDate', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'creationDate'},
     {'1': 'reasonPhrase', '3': 4, '4': 1, '5': 9, '10': 'reasonPhrase'},
     {'1': 'contentLength', '3': 5, '4': 1, '5': 5, '10': 'contentLength'},
-    {
-      '1': 'responseHeaders',
-      '3': 6,
-      '4': 3,
-      '5': 11,
-      '6': '.journal.CacheEntry.ResponseHeadersEntry',
-      '10': 'responseHeaders'
-    },
-    {
-      '1': 'varyHeaders',
-      '3': 7,
-      '4': 3,
-      '5': 11,
-      '6': '.journal.CacheEntry.VaryHeadersEntry',
-      '10': 'varyHeaders'
-    },
+    {'1': 'responseHeaders', '3': 6, '4': 3, '5': 11, '6': '.journal.CacheEntry.ResponseHeadersEntry', '10': 'responseHeaders'},
+    {'1': 'varyHeaders', '3': 7, '4': 3, '5': 11, '6': '.journal.CacheEntry.VaryHeadersEntry', '10': 'varyHeaders'},
     {'1': 'hitCount', '3': 8, '4': 1, '5': 5, '10': 'hitCount'},
-    {
-      '1': 'lastAccessDate',
-      '3': 9,
-      '4': 1,
-      '5': 11,
-      '6': '.google.protobuf.Timestamp',
-      '10': 'lastAccessDate'
-    },
-    {
-      '1': 'persistedResponseSize',
-      '3': 10,
-      '4': 1,
-      '5': 5,
-      '10': 'persistedResponseSize'
-    },
+    {'1': 'lastAccessDate', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'lastAccessDate'},
+    {'1': 'persistedResponseSize', '3': 10, '4': 1, '5': 5, '10': 'persistedResponseSize'},
   ],
   '3': [CacheEntry_ResponseHeadersEntry$json, CacheEntry_VaryHeadersEntry$json],
 };
@@ -178,3 +117,4 @@ final $typed_data.Uint8List cacheEntryDescriptor = $convert.base64Decode(
     'RlcnNFbnRyeRIQCgNrZXkYASABKAlSA2tleRIUCgV2YWx1ZRgCIAEoCVIFdmFsdWU6AjgBGj4K'
     'EFZhcnlIZWFkZXJzRW50cnkSEAoDa2V5GAEgASgJUgNrZXkSFAoFdmFsdWUYAiABKAlSBXZhbH'
     'VlOgI4AQ==');
+

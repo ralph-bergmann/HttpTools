@@ -387,8 +387,8 @@ class HttpCache extends HttpInterceptor {
         cacheKey: secondaryCacheKey,
         reasonPhrase: existingEntry.reasonPhrase,
         contentLength: existingEntry.contentLength,
-        responseHeaders: updatedHeaders,
-        varyHeaders: existingEntry.varyHeaders,
+        responseHeaders: updatedHeaders.entries,
+        varyHeaders: existingEntry.varyHeaders.entries,
         hitCount: existingEntry.hitCount,
         lastAccessDate: Timestamp.fromDateTime(DateTime.now()),
       );
@@ -398,8 +398,8 @@ class HttpCache extends HttpInterceptor {
         cacheKey: secondaryCacheKey,
         reasonPhrase: response.reasonPhrase,
         contentLength: response.contentLength,
-        responseHeaders: response.headers.toLowerCaseKeys(),
-        varyHeaders: response.varyHeaders.toLowerCaseKeys(),
+        responseHeaders: response.headers.toLowerCaseKeys().entries,
+        varyHeaders: response.varyHeaders.toLowerCaseKeys().entries,
         hitCount: existingEntry?.hitCount ?? 0,
         lastAccessDate: Timestamp.fromDateTime(DateTime.now()),
       );

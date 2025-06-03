@@ -277,7 +277,7 @@ CacheEntry _createCacheEntry({
         if (eTag != null) 'etag': eTag,
         if (lastModified != null)
           'last-modified': HttpDate.format(lastModified),
-      },
+      }.entries,
     );
 
 DateTime _now() => DateTime.now().copyWith(millisecond: 0, microsecond: 0);

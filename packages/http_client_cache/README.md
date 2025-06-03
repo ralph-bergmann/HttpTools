@@ -188,5 +188,13 @@ class _CacheControlInterceptor extends HttpInterceptorWrapper {
 
 See [`http_client_interceptor`](https://pub.dev/packages/http_client_interceptor) 
 for how to use this package with popular Dart [http](https://pub.dev/packages/http) packages, 
-like [Chopper](https://pub.dev/packages/chopper), [Dio](https://pub.dev/packages/dio_compatibility_layer), [Retrofit](https://pub.dev/packages/retrofit), [http_image_provider](https://pub.dev/packages/http_image_provider) 
+like [Chopper](https://pub.dev/packages/chopper), [Dio](https://pub.dev/packages/dio_compa fotibility_layer), [Retrofit](https://pub.dev/packages/retrofit), [http_image_provider](https://pub.dev/packages/http_image_provider) 
 and other [`http` comppatible packages](https://pub.dev/packages/http#choosing-an-implementation).
+
+
+## Update protobuf Dart files
+
+- Install protobuf `brew install protobuf`
+- Install Dart lib `dart pub global activate protoc_plugin`
+- In `http_client_cache/lib/src/journal` call `protoc --dart_out=. journal.proto timestamp.proto`
+

@@ -602,8 +602,8 @@ void main() {
         responseHeaders: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-        },
-        varyHeaders: {'Accept': 'application/json'},
+        }.entries,
+        varyHeaders: {'Accept': 'application/json'}.entries,
       );
 
       final result = httpCache.isMatchingCacheEntry(request, cacheEntry);
@@ -623,8 +623,8 @@ void main() {
         responseHeaders: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-        },
-        varyHeaders: {'Accept': 'application/json'},
+        }.entries,
+        varyHeaders: {'Accept': 'application/json'}.entries,
       );
 
       final result = httpCache.isMatchingCacheEntry(request, cacheEntry);
@@ -640,7 +640,7 @@ void main() {
         cacheKey: 'cacheKey',
         reasonPhrase: 'OK',
         contentLength: 123,
-        responseHeaders: {'Content-Type': 'application/json'},
+        responseHeaders: {'Content-Type': 'application/json'}.entries,
         varyHeaders: {},
       );
 
@@ -663,8 +663,8 @@ void main() {
         responseHeaders: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-        },
-        varyHeaders: {'Accept': 'application/json'},
+        }.entries,
+        varyHeaders: {'Accept': 'application/json'}.entries,
       );
 
       final result = httpCache.isMatchingCacheEntry(request, cacheEntry);
@@ -686,11 +686,11 @@ void main() {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer token',
-        },
+        }.entries,
         varyHeaders: {
           'Accept': 'application/json',
           'Authorization': 'Bearer token',
-        },
+        }.entries,
       );
 
       final result = httpCache.isMatchingCacheEntry(request, cacheEntry);
@@ -712,11 +712,11 @@ void main() {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer token',
           'Accept': 'application/json',
-        },
+        }.entries,
         varyHeaders: {
           'Authorization': 'Bearer token',
           'Accept': 'application/json',
-        },
+        }.entries,
       );
 
       final result = httpCache.isMatchingCacheEntry(request, cacheEntry);
@@ -739,11 +739,11 @@ void main() {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer token',
           'Accept': 'application/json',
-        },
+        }.entries,
         varyHeaders: {
           'Authorization': 'Bearer token',
           'Accept': 'application/json',
-        },
+        }.entries,
       );
 
       final result = httpCache.isMatchingCacheEntry(request, cacheEntry);
