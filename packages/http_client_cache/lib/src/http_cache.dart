@@ -117,8 +117,7 @@ class HttpCache extends HttpInterceptor {
   @override
   FutureOr<OnRequest> onRequest(BaseRequest request) async {
     // Handle invalidation for PUT, DELETE, POST, and PATCH requests.
-    if (['PUT', 'DELETE', 'POST', 'PATCH']
-        .contains(request.method.toUpperCase())) {
+    if (['PUT', 'DELETE', 'POST', 'PATCH'].contains(request.method.toUpperCase())) {
       await invalidateCacheForRequest(request);
       return OnRequest.next(request);
     }
@@ -137,9 +136,7 @@ class HttpCache extends HttpInterceptor {
     // If the cache entry is not found or the response is null,
     // forward the request to the next interceptor.
     if (cacheEntry == null || response == null) {
-      _logger.info(
-        'cache miss: no matching cache entry for ${request.url.toString()}',
-      );
+      _logger.info('Cache miss for ${request.url}');
       return OnRequest.next(request);
     }
 
@@ -150,15 +147,13 @@ class HttpCache extends HttpInterceptor {
     }
     final lastModified = cacheEntry.lastModified;
     if (lastModified != null) {
-      request.headers[HttpHeaders.ifModifiedSinceHeader] =
-          HttpDate.format(lastModified);
+      request.headers[HttpHeaders.ifModifiedSinceHeader] = HttpDate.format(lastModified);
     }
 
     // Check if the cache entry is expired, must be revalidated,
     // or has immutable / no-cache / no-store directive.
     if (cacheEntry.needsRevalidation) {
-      _logger
-          .info('cache entry found but expired for ${request.url.toString()}');
+      _logger.info('Cache entry expired for ${request.url}');
 
       // If the cache entry is within the stale-while-revalidate period,
       // resolve and forward the request.
@@ -170,7 +165,7 @@ class HttpCache extends HttpInterceptor {
       }
     }
 
-    _logger.info('cache hit for ${request.url.toString()}');
+    _logger.info('Cache hit for ${request.url}');
 
     // Resolve the request with the cached response.
     return OnRequest.resolve(
@@ -193,19 +188,17 @@ class HttpCache extends HttpInterceptor {
 
     // Parse Cache-Control header.
     final cacheControlHeader = response.headers[HttpHeaders.cacheControlHeader];
-    final cacheControl = cacheControlHeader != null
-        ? CacheControl.parse(cacheControlHeader)
-        : null;
+    final cacheControl = cacheControlHeader != null ? CacheControl.parse(cacheControlHeader) : null;
 
     // If the response is private and _private is false, skip caching.
     if (response.isPrivate && !_private) {
-      _logger.info('Response is private, not caching');
+      _logger.info('Skipping cache for private response: ${request.url}');
       return OnResponse.next(response);
     }
 
     // If the response has no-store directive, skip caching.
     if (cacheControl?.noStore ?? false) {
-      _logger.info('Response has no-store directive, not caching');
+      _logger.info('Skipping cache due to no-store directive: ${request.url}');
       return OnResponse.next(response);
     }
 
@@ -225,7 +218,7 @@ class HttpCache extends HttpInterceptor {
     // Such responses are not cached because they are not specific to any
     // particular set of request headers.
     if (response.hasVaryAll()) {
-      _logger.info('Response has Vary: * header, not caching');
+      _logger.info('Skipping cache due to Vary: * header: ${request.url}');
       return OnResponse.next(response);
     }
 
@@ -252,7 +245,7 @@ class HttpCache extends HttpInterceptor {
         await addResponseToCache(secondaryCacheKey, streams[0]);
       }
     } catch (e, s) {
-      _logger.severe('Failed to write cache file', e, s);
+      _logger.severe('Failed to write cache file for ${request.url}', e, s);
     }
 
     // Add Cache-Status header for cached responses.
@@ -357,7 +350,8 @@ class HttpCache extends HttpInterceptor {
     final secondaryCacheKey = response.secondaryCacheKey;
 
     if (primaryCacheKey == null || secondaryCacheKey == null) {
-      _logger.warning('Failed to generate cache keys for response');
+      final requestUrl = response.request?.url.toString() ?? 'unknown';
+      _logger.warning('Failed to generate cache keys for response: $requestUrl');
       return;
     }
 
@@ -373,8 +367,7 @@ class HttpCache extends HttpInterceptor {
     final CacheEntry cacheEntry;
     if (existingEntry != null && response.statusCode == 304) {
       // For 304 responses, update headers but keep original content
-      final updatedHeaders =
-          Map<String, String>.from(existingEntry.responseHeaders);
+      final updatedHeaders = Map<String, String>.from(existingEntry.responseHeaders);
 
       // Update headers based on the response headers
       for (final header in _headersToUpdate) {
@@ -530,11 +523,10 @@ class HttpCache extends HttpInterceptor {
   }
 
   @visibleForTesting
-  int getCacheSize() =>
-      _journal.entries.values.expand((entry) => entry.cacheEntries.values).fold(
-            0,
-            (sum, cacheEntry) => sum + (cacheEntry.persistedResponseSize),
-          );
+  int getCacheSize() => _journal.entries.values.expand((entry) => entry.cacheEntries.values).fold(
+        0,
+        (sum, cacheEntry) => sum + (cacheEntry.persistedResponseSize),
+      );
 
   /// Clears the entire cache.
   Future<void> clearCache() async {
@@ -554,8 +546,7 @@ class HttpCache extends HttpInterceptor {
     }
 
     _journal.entries.removeWhere(
-      (key, entry) =>
-          entry.cacheEntries.values.any((cacheEntry) => cacheEntry.isPrivate),
+      (key, entry) => entry.cacheEntries.values.any((cacheEntry) => cacheEntry.isPrivate),
     );
 
     await _journal.writeJournal(_fs, asJson: _jsonJournal);
@@ -568,20 +559,10 @@ class HttpCache extends HttpInterceptor {
     }
 
     // Sort entries by Frecency (frequency and recency).
-    final entries = _journal.entries.values
-        .expand((entry) => entry.cacheEntries.values)
-        .toList()
+    final entries = _journal.entries.values.expand((entry) => entry.cacheEntries.values).toList()
       ..sort((a, b) {
-        final aScore = a.hitCount /
-            (DateTime.now()
-                    .difference(a.lastAccessDate.toDateTime())
-                    .inSeconds +
-                1);
-        final bScore = b.hitCount /
-            (DateTime.now()
-                    .difference(b.lastAccessDate.toDateTime())
-                    .inSeconds +
-                1);
+        final aScore = a.hitCount / (DateTime.now().difference(a.lastAccessDate.toDateTime()).inSeconds + 1);
+        final bScore = b.hitCount / (DateTime.now().difference(b.lastAccessDate.toDateTime()).inSeconds + 1);
         return aScore.compareTo(bScore);
       });
 
@@ -624,6 +605,5 @@ class HttpCache extends HttpInterceptor {
 }
 
 extension _MapExtension on Map<String, String> {
-  Map<String, String> toLowerCaseKeys() =>
-      map((key, value) => MapEntry(key.toLowerCase(), value));
+  Map<String, String> toLowerCaseKeys() => map((key, value) => MapEntry(key.toLowerCase(), value));
 }

@@ -184,6 +184,37 @@ class _CacheControlInterceptor extends HttpInterceptorWrapper {
 }
 ```
 
+## Debugging
+
+The cache provides detailed logging to help you understand cache behavior. To enable logging, set up a logger listener:
+
+```dart
+import 'package:logging/logging.dart';
+
+void main() {
+  // Enable cache logging
+  Logger.root.onRecord.listen((record) {
+    print('[${record.level.name}] ${record.loggerName}: ${record.message}');
+  });
+  
+  // Your cache setup...
+}
+```
+
+**Example log messages:**
+- `Cache hit for https://api.example.com/data` - Request served from cache
+- `Cache miss for https://api.example.com/data` - No cached response found
+- `Cache entry expired for https://api.example.com/data` - Cached response is stale
+- `Skipping cache for private response: https://api.example.com/data` - Private content not cached
+- `Skipping cache due to no-store directive: https://api.example.com/data` - Server forbids caching
+- `Skipping cache due to Vary: * header: https://api.example.com/data` - Response varies by all headers
+
+**Tip:** Use logging levels to control verbosity:
+```dart
+Logger.root.level = Level.INFO; // Show cache hits/misses
+Logger.root.level = Level.WARNING; // Show only errors
+```
+
 ## Compatibility
 
 See [`http_client_interceptor`](https://pub.dev/packages/http_client_interceptor) 
