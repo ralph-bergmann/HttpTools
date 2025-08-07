@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_positional_boolean_parameters
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -180,8 +182,7 @@ void main() {
         final response1 = await client.get(server.testUrl);
         expect(response1.body, 'body1');
 
-        final cacheEntry =
-            httpCache.getCacheEntryForRequest(response1.request!);
+        final cacheEntry = httpCache.getCacheEntryForRequest(response1.request!);
         expect(cacheEntry, isNotNull);
 
         // Make the request again to trigger revalidation.
@@ -224,8 +225,7 @@ void main() {
             return shelf.Response.ok(
               'body1',
               headers: {
-                HttpHeaders.cacheControlHeader:
-                    'max-age=0, stale-while-revalidate=60',
+                HttpHeaders.cacheControlHeader: 'max-age=0, stale-while-revalidate=60',
               },
             );
           },
@@ -240,8 +240,7 @@ void main() {
               return shelf.Response.ok(
                 'body2',
                 headers: {
-                  HttpHeaders.cacheControlHeader:
-                      'max-age=0, stale-while-revalidate=60',
+                  HttpHeaders.cacheControlHeader: 'max-age=0, stale-while-revalidate=60',
                 },
               );
             },
@@ -263,7 +262,7 @@ void main() {
         // and does not need to wait for the revalidation to complete.
         // The revalidation request should be made in the background and needs
         // some time to complete.
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
         expect(requestCount, 2);
 
         // Verify the cache was updated with new response
@@ -357,8 +356,7 @@ void main() {
         // verify first response
         final response1 = await client.get(server.testUrl);
         expect(response1.body, 'body1');
-        final cacheEntry =
-            httpCache.getCacheEntryForRequest(response1.request!);
+        final cacheEntry = httpCache.getCacheEntryForRequest(response1.request!);
         expect(cacheEntry, isNotNull);
         final cachedResponse1 = httpCache.getCachedResponse(response1.request!);
         expect(cachedResponse1, isNotNull);
@@ -367,7 +365,7 @@ void main() {
 
         // Wait a few seconds and make the request again. The response should be
         // served from the cache.
-        await Future.delayed(const Duration(seconds: 2));
+        await Future<void>.delayed(const Duration(seconds: 2));
 
         final response2 = await client.get(server.testUrl);
         expect(response2.body, 'body1');
@@ -377,7 +375,7 @@ void main() {
         expect(cachedBody2, 'body1');
 
         // Wait for the cache entry to expire
-        await Future.delayed(const Duration(seconds: 5));
+        await Future<void>.delayed(const Duration(seconds: 5));
 
         // Make the request again and verify the response
         final response3 = await client.get(server.testUrl);
@@ -513,13 +511,9 @@ void main() {
       expect(cacheEntry, isNotNull);
 
       // Invalidate the cache entry with the specified request method
-      if (method == 'PUT' ||
-          method == 'DELETE' ||
-          method == 'POST' ||
-          method == 'PATCH') {
+      if (method == 'PUT' || method == 'DELETE' || method == 'POST' || method == 'PATCH') {
         final response2 = await client.send(
-          http.Request(method, server.url.replace(path: path))
-            ..body = 'new data',
+          http.Request(method, server.url.replace(path: path))..body = 'new data',
         );
         final body = await response2.stream.bytesToString();
         expect(body, 'ok');
@@ -577,8 +571,7 @@ void main() {
       final httpCache = await _createHttpCache();
 
       // Create a dummy request
-      final request =
-          Request('GET', Uri.parse('https://example.com/nonexistent'));
+      final request = Request('GET', Uri.parse('https://example.com/nonexistent'));
 
       // Invalidate the cache for the request
       await httpCache.invalidateCacheForRequest(request);
@@ -648,8 +641,7 @@ void main() {
       expect(result, isTrue);
     });
 
-    test('should return true when request has more headers than vary headers',
-        () async {
+    test('should return true when request has more headers than vary headers', () async {
       final httpCache = await _createHttpCache();
 
       final request = http.Request('GET', Uri.parse('https://example.com'));
@@ -671,8 +663,7 @@ void main() {
       expect(result, isTrue);
     });
 
-    test('should return false when vary headers have more headers than request',
-        () async {
+    test('should return false when vary headers have more headers than request', () async {
       final httpCache = await _createHttpCache();
 
       final request = http.Request('GET', Uri.parse('https://example.com'));
@@ -723,8 +714,7 @@ void main() {
       expect(result, isTrue);
     });
 
-    test('should return true when header names are in different cases',
-        () async {
+    test('should return true when header names are in different cases', () async {
       final httpCache = await _createHttpCache();
 
       final request = http.Request('GET', Uri.parse('https://example.com'));

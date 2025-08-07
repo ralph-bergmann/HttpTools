@@ -1,3 +1,20 @@
+## 1.0.4
+
+### Bug Fixes
+- 🐛 **Fixed Response Processing Logic**: Error responses (4xx, 5xx) are now skipped early in `onResponse()` 
+- ⚡ **Improved Performance**: Eliminated unnecessary cache processing for error responses
+- 🛡️ **Reduced Resource Usage**: Stream splitting and cache logic no longer run on failed requests
+
+### Technical Improvements
+- 🎯 **Early Status Code Check**: Non-successful responses are filtered out immediately after 304 handling
+- 🔧 **Cleaner Code Path**: Removed duplicate status code checks and redundant processing
+- 📊 **Better Resource Management**: Only successful responses (200 OK) and cache revalidations (304) are processed
+
+### What Changed
+- Error responses like 403 Forbidden, 404 Not Found, 500 Internal Server Error no longer trigger cache processing
+- Stream splitting only occurs for responses that will actually be cached
+- Cache headers are only parsed for responses that could be cached
+
 ## 1.0.3
 
 ### Improvements

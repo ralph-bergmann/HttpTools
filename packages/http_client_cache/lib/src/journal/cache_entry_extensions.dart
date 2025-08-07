@@ -22,8 +22,7 @@ extension CacheEntryExtensions on CacheEntry {
   ///
   /// Returns `null` if the `last-modified` header is not present or cannot
   /// be parsed.
-  DateTime? get lastModified =>
-      responseHeaders['last-modified']?._parseHttpDate();
+  DateTime? get lastModified => responseHeaders['last-modified']?._parseHttpDate();
 
   /// Parses the `date` header to get the date when the response was generated.
   ///
@@ -107,8 +106,7 @@ extension CacheEntryExtensions on CacheEntry {
   /// Returns `true` if the cache entry is expired, otherwise `false`.
   bool get isExpired {
     final expirationTime = calculateExpirationTime();
-    return expirationTime != null &&
-        DateTime.now().toUtc().isAfter(expirationTime);
+    return expirationTime != null && DateTime.now().toUtc().isAfter(expirationTime);
   }
 
   /// Determines if the cache entry is within the stale-while-revalidate period.
@@ -137,9 +135,7 @@ extension CacheEntryExtensions on CacheEntry {
     if (expirationTime != null) {
       final staleWhileRevalidateDuration = cacheControl?.staleWhileRevalidate;
       if (staleWhileRevalidateDuration != null) {
-        return DateTime.now()
-            .toUtc()
-            .isBefore(expirationTime.add(staleWhileRevalidateDuration));
+        return DateTime.now().toUtc().isBefore(expirationTime.add(staleWhileRevalidateDuration));
       }
     }
     return false;
@@ -170,9 +166,7 @@ extension CacheEntryExtensions on CacheEntry {
     if (expirationTime != null) {
       final staleIfErrorDuration = cacheControl?.staleIfError;
       if (staleIfErrorDuration != null) {
-        return DateTime.now()
-            .toUtc()
-            .isBefore(expirationTime.add(staleIfErrorDuration));
+        return DateTime.now().toUtc().isBefore(expirationTime.add(staleIfErrorDuration));
       }
     }
     return false;
@@ -190,10 +184,10 @@ extension CacheEntryExtensions on CacheEntry {
   /// Returns false when:
   /// - Content is fresh and has immutable flag
   bool get needsRevalidation {
-    if (noStore == true) {
+    if (noStore) {
       return true;
     }
-    if (noCache == true) {
+    if (noCache) {
       return true;
     }
 

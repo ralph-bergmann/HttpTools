@@ -24,9 +24,6 @@ import 'journal/timestamp.pb.dart';
 /// Logger instance for cache logging.
 final _logger = Logger('HttpCache');
 
-/// For debugging save Journal in JSON format.
-const _jsonJournal = false;
-
 /// Default max cache size in bytes.
 const int _defaultMaxCacheSize = 100 * 1024 * 1024;
 
@@ -86,7 +83,7 @@ class HttpCache extends HttpInterceptor {
     await cacheDir.create(recursive: true);
     _cacheName = 'HttpToolsLocalCache';
     _fs = ChrootFileSystem(const LocalFileSystem(), cacheDir.absolute.path);
-    _journal = await loadJournal(_fs, asJson: _jsonJournal);
+    _journal = await loadJournal(_fs);
     _maxCacheSize = maxCacheSize;
     _private = private;
   }
@@ -104,7 +101,7 @@ class HttpCache extends HttpInterceptor {
   }) async {
     _cacheName = 'HttpToolsInMemoryCache';
     _fs = MemoryFileSystem();
-    _journal = await loadJournal(_fs, asJson: _jsonJournal);
+    _journal = await loadJournal(_fs);
     _maxCacheSize = maxCacheSize;
     _private = private;
   }
@@ -177,13 +174,29 @@ class HttpCache extends HttpInterceptor {
 
   /// Intercepts HTTP responses.
   ///
-  /// If the request method is GET and the response status code is 200,
-  /// it caches the response body.
+  /// Only successful GET responses (200 OK) and 304 Not Modified responses
+  /// are processed for caching. Error responses (4xx, 5xx) are passed through
+  /// without any cache processing to avoid unnecessary overhead.
   @override
   FutureOr<OnResponse> onResponse(StreamedResponse response) async {
     final request = response.request;
     // Handle non-GET requests.
     if (request == null || request.method.toUpperCase() != 'GET') {
+      return OnResponse.next(response);
+    }
+
+    // Handle 304 Not Modified response early (special case for cache revalidation).
+    if (response.statusCode == 304) {
+      final cachedResponse = getCachedResponse(request);
+      if (cachedResponse != null) {
+        await addOrUpdateCacheEntryForResponse(response);
+        return OnResponse.resolve(cachedResponse);
+      }
+    }
+
+    // Only process successful responses for caching (200 OK).
+    // Error responses (4xx, 5xx) should not be cached.
+    if (response.statusCode != 200) {
       return OnResponse.next(response);
     }
 
@@ -220,20 +233,6 @@ class HttpCache extends HttpInterceptor {
     // particular set of request headers.
     if (response.hasVaryAll()) {
       _logger.info('Skipping cache due to Vary: * header: ${request.url}');
-      return OnResponse.next(response);
-    }
-
-    // Handle 304 Not Modified response.
-    if (response.statusCode == 304) {
-      final cachedResponse = getCachedResponse(request);
-      if (cachedResponse != null) {
-        await addOrUpdateCacheEntryForResponse(response);
-        return OnResponse.resolve(cachedResponse);
-      }
-    }
-
-    // Handle non-200 responses.
-    if (response.statusCode != 200) {
       return OnResponse.next(response);
     }
 
@@ -311,7 +310,7 @@ class HttpCache extends HttpInterceptor {
   @override
   FutureOr<void> dispose() async {
     _debounceTimer?.cancel();
-    await _journal.writeJournal(_fs, asJson: _jsonJournal);
+    await _journal.writeJournal(_fs);
   }
 
   /// Retrieves a cache entry from the journal based on the request.
@@ -520,7 +519,7 @@ class HttpCache extends HttpInterceptor {
       }
       // Remove the journal entry.
       _journal.entries.remove(primaryCacheKey);
-      await _journal.writeJournal(_fs, asJson: _jsonJournal);
+      await _journal.writeJournal(_fs);
     }
   }
 
@@ -534,7 +533,7 @@ class HttpCache extends HttpInterceptor {
   Future<void> clearCache() async {
     await _fs.directory('/').delete(recursive: true);
     _journal.entries.clear();
-    await _journal.writeJournal(_fs, asJson: _jsonJournal);
+    await _journal.writeJournal(_fs);
   }
 
   /// Deletes private content from the cache.
@@ -551,7 +550,7 @@ class HttpCache extends HttpInterceptor {
       (key, entry) => entry.cacheEntries.values.any((cacheEntry) => cacheEntry.isPrivate),
     );
 
-    await _journal.writeJournal(_fs, asJson: _jsonJournal);
+    await _journal.writeJournal(_fs);
   }
 
   Future<void> _checkCacheSizeAndClean() async {
@@ -601,7 +600,7 @@ class HttpCache extends HttpInterceptor {
   void _debounceJournalSave() {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(seconds: 1), () async {
-      await _journal.writeJournal(_fs, asJson: _jsonJournal);
+      await _journal.writeJournal(_fs);
     });
   }
 }

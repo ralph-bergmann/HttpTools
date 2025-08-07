@@ -7,7 +7,7 @@ topics:
   - http
   - network
   - cache
-version: 1.0.3
+version: 1.0.4
 repository: https://github.com/ralph-bergmann/HttpTools
 issue_tracker: https://github.com/ralph-bergmann/HttpTools/issues
 
