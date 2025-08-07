@@ -24,7 +24,7 @@ melos:
     analyze:
       exec: dart analyze .
     format:
-      exec: dart format -l 80 .
+      exec: dart format -l 120 .
     fix:
       exec: dart fix --apply
     test:
