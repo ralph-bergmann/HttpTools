@@ -1,5 +1,16 @@
 # http_client_logger
 
+A flexible HTTP logging interceptor for Dart and Flutter applications that provides configurable logging levels for HTTP requests and responses.
+
+## Performance Considerations
+
+⚠️ **Important:** Different logging levels have varying performance impacts:
+
+- `Level.basic` and `Level.headers` - Minimal performance overhead
+- `Level.body` - **Significant performance impact** as it reads and processes the entire request/response body content
+
+**Recommendation:** Use `Level.body` only during development and debugging. Avoid using it in production environments where performance is critical.
+
 ## Installation
 
 ### For Dart
@@ -42,7 +53,8 @@ Future<void> main() async {
       _myDartApp,
       () => HttpClientProxy(
         interceptors: [
-          HttpLogger(),
+          // Use Level.basic for production, Level.body for debugging only
+          HttpLogger(level: Level.headers), // or Level.body for full logging
         ],
       ),
     ),
@@ -56,6 +68,28 @@ Future<void> _myDartApp() async {
 }
 ```
 
+### Logging Levels
+
+The `HttpLogger` supports different logging levels:
+
+- `Level.none` - No logging
+- `Level.basic` - Request method, URL, status code, and timing
+- `Level.headers` - Basic info + request/response headers  
+- `Level.body` - Headers info + complete request/response bodies ⚠️ **Performance Impact**
+
+### Example with different levels:
+
+```dart
+// For production - minimal logging
+HttpLogger(level: Level.basic)
+
+// For development - includes headers
+HttpLogger(level: Level.headers) 
+
+// For debugging only - includes bodies (slow!)
+HttpLogger(level: Level.body)
+```
+
 ### For Flutter
 
 ```dart
@@ -65,7 +99,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_client_interceptor/http_client_interceptor.dart';
 import 'package:http_client_logger/http_client_logger.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:logging/logging.dart' hide Level;
 
 void main() {
   // Set up logging to print to the console.
@@ -74,7 +108,7 @@ void main() {
   });
 
   unawaited(
-    // Create a new [HttpClientProxy] with the [HttpCache] interceptor
+    // Create a new [HttpClientProxy] with the [HttpLogger] interceptor
     // and make it the default [http.Client] for the [http.Client.new] factory method.
     //
     // A better way may be to create the [http.Client] and inject it where it is needed, 
@@ -88,7 +122,8 @@ void main() {
       },
       () => HttpClientProxy(
         interceptors: [
-          HttpLogger(),
+          // Use appropriate level based on environment
+          HttpLogger(level: Level.headers), // Avoid Level.body in production
         ],
       ),
     ),

@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:async/async.dart';
 import 'package:http/http.dart';
 import 'package:http_client_interceptor/http_client_interceptor.dart';
 import 'package:logging/logging.dart';
@@ -34,7 +36,7 @@ const _requestId = 'x-request-id';
 ///         },
 ///       );
 ///     },
-///     () => HttpClientProxy(interceptors: [HttpLogger(level: Level.basic)]),
+///     () => HttpClientProxy(interceptors: [HttpLogger(level: Level.body)]),
 ///   );
 /// }
 /// ```
@@ -55,7 +57,7 @@ class HttpLogger extends HttpInterceptor {
   FutureOr<OnRequest> onRequest(BaseRequest request) {
     final isBasic = level.index >= Level.basic.index;
     final isHeaders = level.index >= Level.headers.index;
-    //final isBody = level.index >= Level.body.index;
+    final isBody = level.index >= Level.body.index;
 
     if (isBasic) {
       _logger.info(
@@ -68,11 +70,9 @@ class HttpLogger extends HttpInterceptor {
         _logger.info('$header: $value');
       });
     }
-    //if (isBody && request.body != null) {
-    //  _logger
-    //    ..info('\n')
-    //    ..info(request.body);
-    //}
+    if (isBody) {
+      _logRequestBody(request);
+    }
     if (isHeaders) {
       _logger.info('--> END ${request.method}');
     }
@@ -87,10 +87,10 @@ class HttpLogger extends HttpInterceptor {
 
   /// Logs response details based on the specified [level].
   @override
-  FutureOr<OnResponse> onResponse(StreamedResponse response) {
+  FutureOr<OnResponse> onResponse(StreamedResponse response) async {
     final isBasic = level.index >= Level.basic.index;
     final isHeaders = level.index >= Level.headers.index;
-    //final isBody = level.index >= Level.body.index;
+    final isBody = level.index >= Level.body.index;
 
     if (isBasic) {
       final requestId = response.request?.headers[_requestId];
@@ -106,15 +106,33 @@ class HttpLogger extends HttpInterceptor {
         _logger.info('$header: $value');
       });
     }
-    //if (isBody && response.body.isNotEmpty) {
-    //  _logger
-    //    ..info('\n')
-    //    ..info(response.body);
-    //}
+
+    // If we need to log the body, split the stream
+    StreamedResponse finalResponse;
+    if (isBody) {
+      final streams = StreamSplitter.splitFrom(response.stream);
+
+      // Log the body using one stream and wait for it to complete
+      await _logResponseBody(streams[0]);
+
+      // Create the final response with the other stream
+      finalResponse = StreamedResponse(
+        streams[1],
+        response.statusCode,
+        contentLength: response.contentLength,
+        request: response.request,
+        headers: response.headers,
+        isRedirect: response.isRedirect,
+        persistentConnection: response.persistentConnection,
+        reasonPhrase: response.reasonPhrase,
+      );
+    } else {
+      finalResponse = response;
+    }
     if (isHeaders) {
       _logger.info('<-- END');
     }
-    return OnResponse.next(response);
+    return OnResponse.next(finalResponse);
   }
 
   /// Handles errors during HTTP transactions.
@@ -148,9 +166,66 @@ class HttpLogger extends HttpInterceptor {
     }
     return null;
   }
+
+  /// Logs the body of the HTTP request.
+  void _logRequestBody(BaseRequest request) {
+    try {
+      if (request is Request) {
+        if (request.body.isNotEmpty) {
+          _logger.info('\n${request.body}');
+        } else {
+          _logger.info('\n<empty request body>');
+        }
+      } else if (request is MultipartRequest) {
+        _logger.info('\nMultipart request with ${request.fields.length} fields '
+            'and ${request.files.length} files');
+        if (request.fields.isNotEmpty) {
+          _logger.info('Fields:');
+          request.fields.forEach((key, value) {
+            _logger.info('  $key: $value');
+          });
+        }
+        if (request.files.isNotEmpty) {
+          _logger.info('Files:');
+          for (final file in request.files) {
+            _logger.info('  ${file.field}: ${file.filename ?? '<no filename>'} '
+                '(${file.length} bytes)');
+          }
+        }
+      } else {
+        _logger.info('\n<binary or unsupported request body>');
+      }
+    } catch (e) {
+      _logger.info('\n<error reading request body: $e>');
+    }
+  }
+
+  /// Logs the body of the HTTP response.
+  Future<void> _logResponseBody(Stream<List<int>> bodyStream) async {
+    try {
+      final chunks = await bodyStream.toList();
+      final bodyBytes = <int>[];
+      chunks.forEach(bodyBytes.addAll);
+
+      final bodyString = utf8.decode(bodyBytes, allowMalformed: true);
+
+      if (bodyString.isNotEmpty) {
+        _logger.info('\n$bodyString');
+      } else {
+        _logger.info('\n<empty response body>');
+      }
+    } catch (e) {
+      _logger.info('\n<error reading response body: $e>');
+    }
+  }
 }
 
 /// Defines the logging levels available for HTTP logging.
+///
+/// **Warning:** Higher logging levels may impact HTTP request performance:
+/// - [headers] level adds minimal overhead
+/// - [body] level can significantly slow down requests as it reads and
+///   processes the entire request/response body content
 enum Level {
   /// No logs will be recorded.
   none,
@@ -159,8 +234,14 @@ enum Level {
   basic,
 
   /// Logs basic information along with request and response headers.
+  ///
+  /// **Note:** Minimal performance impact.
   headers,
 
-  ///// Logs complete request and response headers and bodies.
-  //body
+  /// Logs complete request and response headers and bodies.
+  ///
+  /// **Warning:** This level can significantly impact performance as it reads
+  /// and processes the entire request/response body content. Use with caution
+  /// in production environments.
+  body
 }

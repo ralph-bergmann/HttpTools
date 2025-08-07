@@ -10,9 +10,9 @@ import 'package:logging/logging.dart' hide Level;
 /// This example demonstrates how to use the [HttpLogger] with the `http`
 /// package to log HTTP requests and responses.
 ///
-/// This example sets up a simple HTTP GET request to a public API and logs
+/// This example sets up HTTP GET and POST requests to a public API and logs
 /// the request and response using the [HttpLogger]. The logger is configured
-/// to use a `basic` logging level, which includes essential information.
+/// to use a `body` logging level, which includes request/response bodies.
 ///
 /// To run this example:
 /// 1. Ensure you have the `http`, `http_logger`, and `logging`
@@ -32,28 +32,32 @@ void main() {
   );
 }
 
-/// Simulates a Dart application making an HTTP GET request to a public API
+/// Simulates a Dart application making HTTP requests to a public API
 /// endpoint.
 ///
-/// This function performs a GET request to 'https://jsonplaceholder.typicode.com/posts/1',
-/// including a content type header that specifies JSON as the expected response
-/// format.
-///
-/// The HTTP client is created and closed again once the request has been
-/// completed. This is important to free up system resources and avoid possible
-/// memory leaks. Reusing the same client keeps the HTTP connection open.
-/// In addition, `_createHttpClient` is not called again for every HTTP request.
+/// This function performs GET and POST requests to demonstrate both
+/// request and response body logging.
 Future<void> _myDartApp() async {
   // Instantiate a new HTTP client. This client will be configured to use
   // the interceptors defined in `http.runWithClient` if any are set up.
   final client = http.Client();
 
   try {
+    print('=== Making GET request ===');
     await client.get(
       Uri.parse('https://jsonplaceholder.typicode.com/posts/1'),
       headers: {
         HttpHeaders.contentTypeHeader: 'application/json; charset=UTF-8',
       },
+    );
+
+    print('\n=== Making POST request ===');
+    await client.post(
+      Uri.parse('https://jsonplaceholder.typicode.com/posts'),
+      headers: {
+        HttpHeaders.contentTypeHeader: 'application/json; charset=UTF-8',
+      },
+      body: '{"title": "Test Post", "body": "This is a test body", "userId": 1}',
     );
   } finally {
     // Always close the client after use to free up system resources
@@ -63,13 +67,13 @@ Future<void> _myDartApp() async {
 }
 
 /// Creates an HTTP client configured with an interceptor to log all HTTP
-/// transactions.
+/// transactions including request and response bodies.
 ///
 /// This function returns an instance of [HttpClientProxy] configured with
-/// a [HttpLogger] interceptor. The logger is set to a `basic` level, ensuring
-/// that essential details of each HTTP transaction are logged.
+/// a [HttpLogger] interceptor. The logger is set to `body` level, ensuring
+/// that detailed information including request/response bodies are logged.
 http.Client _createHttpClient() => HttpClientProxy(
       interceptors: [
-        HttpLogger(level: Level.basic),
+        HttpLogger(level: Level.body),
       ],
     );
