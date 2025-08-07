@@ -1,3 +1,18 @@
+## 1.0.3
+
+### Improvements
+- 🚨 **Enhanced Stale Content Logging**: Added specific log messages for stale-while-revalidate and stale-if-error scenarios
+- 📖 **Improved Documentation**: Updated README with comprehensive debugging section and stale-if-error feature documentation
+
+### New Logger Messages
+- `Serving stale content while revalidating for https://api.example.com/data` - Shows when stale-while-revalidate is active
+- `Serving stale content due to network error for https://api.example.com/data` - Shows when stale-if-error provides fallback
+
+### Technical Improvements
+- 🔍 **Better Cache Visibility**: Developers can now see exactly when and why stale content is being served
+- 🛡️ **Resilience Insights**: Clear indication when cache provides error recovery through stale content
+- 📊 **Performance Transparency**: Understand when background revalidation occurs
+
 ## 1.0.2
 
 ### Improvements

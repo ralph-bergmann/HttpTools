@@ -20,7 +20,7 @@ Add any or all packages to your `pubspec.yaml`:
 dependencies:
   http_client_interceptor: ^1.0.1
   http_client_logger: ^1.1.2
-  http_client_cache: ^1.0.2
+  http_client_cache: ^1.0.3
 ```
 
 ### Basic Usage - All Features Combined

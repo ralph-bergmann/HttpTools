@@ -158,6 +158,7 @@ class HttpCache extends HttpInterceptor {
       // If the cache entry is within the stale-while-revalidate period,
       // resolve and forward the request.
       if (cacheEntry.isStaleWhileRevalidate) {
+        _logger.info('Serving stale content while revalidating for ${request.url}');
         return OnRequest.resolveAndNext(request, response);
       } else {
         // Otherwise, forward the request to the next interceptor.
@@ -296,6 +297,7 @@ class HttpCache extends HttpInterceptor {
     if (cacheEntry.isStaleIfError) {
       final cachedResponse = getCachedResponse(request);
       if (cachedResponse != null) {
+        _logger.info('Serving stale content due to network error for ${request.url}');
         return OnError.resolve(cachedResponse);
       }
     }

@@ -205,6 +205,8 @@ void main() {
 - `Cache hit for https://api.example.com/data` - Request served from cache
 - `Cache miss for https://api.example.com/data` - No cached response found
 - `Cache entry expired for https://api.example.com/data` - Cached response is stale
+- `Serving stale content while revalidating for https://api.example.com/data` - Stale-while-revalidate in action
+- `Serving stale content due to network error for https://api.example.com/data` - Stale-if-error fallback
 - `Skipping cache for private response: https://api.example.com/data` - Private content not cached
 - `Skipping cache due to no-store directive: https://api.example.com/data` - Server forbids caching
 - `Skipping cache due to Vary: * header: https://api.example.com/data` - Response varies by all headers
