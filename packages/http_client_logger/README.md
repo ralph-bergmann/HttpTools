@@ -1,6 +1,6 @@
 # http_client_logger
 
-A flexible HTTP logging interceptor for Dart and Flutter applications that provides configurable logging levels for HTTP requests and responses.
+A flexible HTTP logging interceptor for Dart and Flutter applications that provides configurable logging levels for HTTP requests and responses. Features unique request ID tracking for easy debugging of concurrent requests.
 
 ## Performance Considerations
 
@@ -89,6 +89,29 @@ HttpLogger(level: Level.headers)
 // For debugging only - includes bodies (slow!)
 HttpLogger(level: Level.body)
 ```
+
+### Log Output Format
+
+The logger provides clean, structured output with unique request IDs to track individual requests:
+
+```
+[a1b2c3d4] --> GET https://api.example.com/data
+[a1b2c3d4]     authorization: Bearer token...
+[a1b2c3d4]     content-type: application/json
+[a1b2c3d4]     <empty request body>
+[a1b2c3d4] --> END GET
+[a1b2c3d4] <-- 200 OK (150ms)
+[a1b2c3d4]     content-type: application/json
+[a1b2c3d4]     content-length: 1234
+[a1b2c3d4]     {"data": "response content"}
+[a1b2c3d4] <-- END
+```
+
+**Features:**
+- 🆔 **Unique Request IDs**: Each request gets a unique 8-character ID for easy tracking
+- 🔗 **Consistent Tracking**: Same ID appears in HTTP headers (`x-request-id`) and logs
+- 📝 **Clear Structure**: Request/response boundaries with `-->` and `<--` markers
+- 🧵 **Concurrent Support**: Easy to follow multiple simultaneous requests
 
 ### For Flutter
 

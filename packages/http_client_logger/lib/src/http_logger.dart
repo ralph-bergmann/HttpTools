@@ -1,19 +1,35 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:async/async.dart';
 import 'package:http/http.dart';
 import 'package:http_client_interceptor/http_client_interceptor.dart';
 import 'package:logging/logging.dart';
-import 'package:uuid/uuid.dart';
 
 /// Logger instance for HTTP logging.
 final _logger = Logger('HttpLogger');
 
-/// UUID generator for unique request identifiers.
-const _uuid = Uuid();
+/// Random number generator for unique request identifiers.
+final _random = Random();
 
 /// Custom header key to track request IDs.
 const _requestId = 'x-request-id';
+
+/// Generates a short but unique request ID.
+///
+/// Uses timestamp (in milliseconds since epoch) combined with random bits
+/// to ensure uniqueness while keeping the ID short and readable.
+String _generateRequestId() {
+  final timestamp = DateTime.now().millisecondsSinceEpoch;
+  final randomBits = _random.nextInt(0xFFFF); // 16-bit random number
+
+  // Take last 24 bits of timestamp (about 4.6 hours of uniqueness)
+  // and combine with 16 bits of random data for 40 bits total
+  final combined = ((timestamp & 0xFFFFFF) << 16) | randomBits;
+
+  // Convert to base-36 string (using 0-9, a-z) for compact representation
+  return combined.toRadixString(36).padLeft(8, '0');
+}
 
 /// A [HttpInterceptor] to log HTTP requests and responses.
 ///
@@ -59,29 +75,38 @@ class HttpLogger extends HttpInterceptor {
     final isHeaders = level.index >= Level.headers.index;
     final isBody = level.index >= Level.body.index;
 
+    final requestId = _generateRequestId();
+    final stopwatch = Stopwatch()..start();
+    _requestTimers[requestId] = stopwatch;
+    request.headers[_requestId] = requestId;
+
+    // Use the same ID for both headers and logging
+    final shortId = requestId;
+
     if (isBasic) {
       _logger.info(
-        '--> ${request.method} '
-        '${request.url.toString()}',
+        '[$shortId] --> ${request.method} ${request.url}',
       );
     }
     if (isHeaders) {
-      request.headers.forEach((header, value) {
-        _logger.info('$header: $value');
-      });
+      if (request.headers.isNotEmpty) {
+        request.headers.forEach((header, value) {
+          // Skip our internal request ID header
+          if (header != _requestId) {
+            _logger.info('[$shortId]     $header: $value');
+          }
+        });
+      } else {
+        _logger.info('[$shortId]     <no headers>');
+      }
     }
     if (isBody) {
-      _logRequestBody(request);
+      _logRequestBody(request, shortId);
     }
-    if (isHeaders) {
-      _logger.info('--> END ${request.method}');
+    if (isHeaders || isBody) {
+      _logger.info('[$shortId] --> END ${request.method}');
     }
 
-    final requestId = _uuid.v4();
-    final stopwatch = Stopwatch()..start();
-    _requestTimers[requestId] = stopwatch;
-
-    request.headers[_requestId] = requestId;
     return OnRequest.next(request);
   }
 
@@ -92,19 +117,27 @@ class HttpLogger extends HttpInterceptor {
     final isHeaders = level.index >= Level.headers.index;
     final isBody = level.index >= Level.body.index;
 
-    if (isBasic) {
-      final requestId = response.request?.headers[_requestId];
-      final duration = _stopTimer(requestId);
+    final requestId = response.request?.headers[_requestId];
+    final duration = _stopTimer(requestId);
 
+    // Use the same ID that's in the headers
+    final shortId = requestId ?? 'unknown';
+
+    if (isBasic) {
       _logger.info(
-        '<-- ${response.statusCode} ${response.reasonPhrase} '
-        '[${duration}ms] ${response.request?.url.toString()}',
+        '[$shortId] <-- ${response.statusCode} ${response.reasonPhrase ?? ''} '
+        '(${duration ?? '?'}ms)',
       );
     }
+
     if (isHeaders) {
-      response.headers.forEach((header, value) {
-        _logger.info('$header: $value');
-      });
+      if (response.headers.isNotEmpty) {
+        response.headers.forEach((header, value) {
+          _logger.info('[$shortId]     $header: $value');
+        });
+      } else {
+        _logger.info('[$shortId]     <no headers>');
+      }
     }
 
     // If we need to log the body, split the stream
@@ -113,7 +146,7 @@ class HttpLogger extends HttpInterceptor {
       final streams = StreamSplitter.splitFrom(response.stream);
 
       // Log the body using one stream and wait for it to complete
-      await _logResponseBody(streams[0]);
+      await _logResponseBody(streams[0], shortId);
 
       // Create the final response with the other stream
       finalResponse = StreamedResponse(
@@ -129,9 +162,11 @@ class HttpLogger extends HttpInterceptor {
     } else {
       finalResponse = response;
     }
-    if (isHeaders) {
-      _logger.info('<-- END');
+
+    if (isHeaders || isBody) {
+      _logger.info('[$shortId] <-- END');
     }
+
     return OnResponse.next(finalResponse);
   }
 
@@ -142,7 +177,10 @@ class HttpLogger extends HttpInterceptor {
     Object error,
     StackTrace? stackTrace,
   ) {
-    _logger.severe('HTTP Error: $error', error, stackTrace);
+    final requestId = request.headers[_requestId];
+    final shortId = requestId ?? 'unknown';
+
+    _logger.severe('[$shortId] HTTP Error: $error', error, stackTrace);
     return OnError.next(request, error, stackTrace);
   }
 
@@ -168,40 +206,40 @@ class HttpLogger extends HttpInterceptor {
   }
 
   /// Logs the body of the HTTP request.
-  void _logRequestBody(BaseRequest request) {
+  void _logRequestBody(BaseRequest request, String shortId) {
     try {
       if (request is Request) {
         if (request.body.isNotEmpty) {
-          _logger.info('\n${request.body}');
+          _logger.info('[$shortId]     ${request.body}');
         } else {
-          _logger.info('\n<empty request body>');
+          _logger.info('[$shortId]     <empty request body>');
         }
       } else if (request is MultipartRequest) {
-        _logger.info('\nMultipart request with ${request.fields.length} fields '
-            'and ${request.files.length} files');
+        _logger.info('[$shortId]     Multipart request with '
+            '${request.fields.length} fields and ${request.files.length} files');
         if (request.fields.isNotEmpty) {
-          _logger.info('Fields:');
+          _logger.info('[$shortId]     Fields:');
           request.fields.forEach((key, value) {
-            _logger.info('  $key: $value');
+            _logger.info('[$shortId]       $key: $value');
           });
         }
         if (request.files.isNotEmpty) {
-          _logger.info('Files:');
+          _logger.info('[$shortId]     Files:');
           for (final file in request.files) {
-            _logger.info('  ${file.field}: ${file.filename ?? '<no filename>'} '
-                '(${file.length} bytes)');
+            _logger.info('[$shortId]       ${file.field}: '
+                '${file.filename ?? '<no filename>'} (${file.length} bytes)');
           }
         }
       } else {
-        _logger.info('\n<binary or unsupported request body>');
+        _logger.info('[$shortId]     <binary or unsupported request body>');
       }
     } catch (e) {
-      _logger.info('\n<error reading request body: $e>');
+      _logger.info('[$shortId]     <error reading request body: $e>');
     }
   }
 
   /// Logs the body of the HTTP response.
-  Future<void> _logResponseBody(Stream<List<int>> bodyStream) async {
+  Future<void> _logResponseBody(Stream<List<int>> bodyStream, String shortId) async {
     try {
       final chunks = await bodyStream.toList();
       final bodyBytes = <int>[];
@@ -210,12 +248,12 @@ class HttpLogger extends HttpInterceptor {
       final bodyString = utf8.decode(bodyBytes, allowMalformed: true);
 
       if (bodyString.isNotEmpty) {
-        _logger.info('\n$bodyString');
+        _logger.info('[$shortId]     $bodyString');
       } else {
-        _logger.info('\n<empty response body>');
+        _logger.info('[$shortId]     <empty response body>');
       }
     } catch (e) {
-      _logger.info('\n<error reading response body: $e>');
+      _logger.info('[$shortId]     <error reading response body: $e>');
     }
   }
 }

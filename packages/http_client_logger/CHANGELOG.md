@@ -1,3 +1,20 @@
+## 1.1.1
+
+### Features
+- 🆔 **Improved Request ID System**: Replaced UUID with custom short ID generation
+- 🎯 **Consistent IDs**: Request IDs are now identical in HTTP headers and log output
+- 📝 **Enhanced Log Format**: Added request ID prefixes to all log lines for better tracking
+- 🔍 **Concurrent Request Support**: Easy to follow multiple simultaneous requests
+
+### Technical Improvements
+- ⚡ **Removed UUID dependency**: Custom 8-character ID generation using timestamp + random bits
+- 🚀 **Better Performance**: Faster ID generation with guaranteed uniqueness
+- 🎨 **Improved Log Formatting**: Consistent indentation and clear request/response boundaries
+- 🛠️ **Better Error Context**: Error messages now include request IDs for easier debugging
+
+### Breaking Changes
+- None - fully backward compatible
+
 ## 1.1.0
 
 ### Features
