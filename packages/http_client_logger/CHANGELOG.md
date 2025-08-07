@@ -1,3 +1,22 @@
+## 1.1.3
+
+### Features
+- 🔤 **Enhanced Encoding Detection**: Improved response body decoding using proper charset detection
+- 🌐 **Better International Support**: UTF-8 default for JSON, charset parameter parsing from Content-Type headers
+- 🔧 **HTTP Package Compatibility**: Encoding detection follows the same patterns as the official `http` package
+
+### Technical Improvements
+- 📦 **Added `http_parser` dependency**: For proper MediaType parsing and charset detection
+- 🎯 **Smart Charset Handling**: UTF-8 for `application/json`, charset parameter parsing, `latin1` fallback
+- 🔄 **Borrowed Methods**: `_toUint8List()` and `_encodingForHeaders()` methods adapted from `http` package
+- 🛡️ **Robust Error Handling**: Graceful fallback to UTF-8 with malformed character handling
+
+### Example Benefits
+- JSON responses automatically use UTF-8 encoding
+- Proper handling of international characters in responses
+- Charset-aware decoding based on Content-Type headers
+- Better compatibility with various API response formats
+
 ## 1.1.2
 
 ### Features

@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:async/async.dart';
 import 'package:http/http.dart';
 import 'package:http_client_interceptor/http_client_interceptor.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:logging/logging.dart';
 
 /// Logger instance for HTTP logging.
@@ -271,9 +273,7 @@ class HttpLogger extends HttpInterceptor {
   /// Logs the body of the HTTP response.
   Future<void> _logResponseBody(Stream<List<int>> bodyStream, String shortId, String? contentType) async {
     try {
-      final chunks = await bodyStream.toList();
-      final bodyBytes = <int>[];
-      chunks.forEach(bodyBytes.addAll);
+      final bodyBytes = _toUint8List(await bodyStream.expand((chunk) => chunk).toList());
 
       if (bodyBytes.isEmpty) {
         _logger.info('[$shortId]     <empty response body>');
@@ -282,8 +282,18 @@ class HttpLogger extends HttpInterceptor {
 
       // Check if we should log this content type as text
       if (_shouldLogBody(contentType)) {
-        final bodyString = utf8.decode(bodyBytes, allowMalformed: true);
-        _logger.info('[$shortId]     $bodyString');
+        // Use proper encoding detection like the http package
+        final headers = contentType != null ? {'content-type': contentType} : <String, String>{};
+        final encoding = _encodingForHeaders(headers);
+
+        try {
+          final bodyString = encoding.decode(bodyBytes);
+          _logger.info('[$shortId]     $bodyString');
+        } catch (e) {
+          // If decoding fails, fall back to UTF-8 with malformed handling
+          final bodyString = utf8.decode(bodyBytes, allowMalformed: true);
+          _logger.info('[$shortId]     $bodyString');
+        }
       } else {
         // For binary/filtered content, show a summary with MIME type and human-readable size
         final normalizedType = contentType?.toLowerCase().split(';').first.trim() ?? 'unknown';
@@ -323,6 +333,49 @@ class HttpLogger extends HttpInterceptor {
       final mb = (bytes / (1024 * 1024)).toStringAsFixed(1);
       return '${mb}MB';
     }
+  }
+
+  /// Converts [input] into a [Uint8List].
+  ///
+  /// If [input] is a [TypedData], this just returns a view on [input].
+  ///
+  /// This method is borrowed from the `http` package implementation.
+  Uint8List _toUint8List(List<int> input) {
+    if (input is Uint8List) {
+      return input;
+    }
+    if (input case final TypedData data) {
+      return Uint8List.view(data.buffer);
+    }
+    return Uint8List.fromList(input);
+  }
+
+  /// Determines the appropriate [Encoding] based on the given headers
+  ///
+  /// - If the `Content-Type` is `application/json` and no charset is specified,
+  ///   it defaults to [utf8].
+  /// - If a charset is specified in the parameters,
+  ///   it attempts to find a matching [Encoding].
+  /// - If no charset is specified or the charset is unknown,
+  ///   it falls back to [latin1].
+  ///
+  /// This method is borrowed from the `http` package implementation.
+  Encoding _encodingForHeaders(Map<String, String> headers) {
+    final contentType = headers['content-type'];
+    if (contentType == null) {
+      return latin1;
+    }
+
+    final mediaType = MediaType.parse(contentType);
+    final charset = mediaType.parameters['charset'];
+
+    // Default to utf8 for application/json when charset is unspecified.
+    if (mediaType.type == 'application' && mediaType.subtype == 'json' && charset == null) {
+      return utf8;
+    }
+
+    // Attempt to find the encoding or fall back to latin1.
+    return charset != null ? Encoding.getByName(charset) ?? latin1 : latin1;
   }
 }
 

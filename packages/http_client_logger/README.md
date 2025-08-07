@@ -118,6 +118,26 @@ HttpLogger(
 - `application/javascript`, `text/javascript`
 - `application/x-www-form-urlencoded`
 
+### Character Encoding Support
+
+The logger uses intelligent character encoding detection to properly display international content:
+
+**Features:**
+- 🔤 **Smart Charset Detection**: Automatically detects charset from `Content-Type` headers
+- 🌐 **UTF-8 Default for JSON**: `application/json` responses default to UTF-8 encoding
+- 📄 **Charset Parameter Parsing**: Respects explicit charset specifications like `text/html; charset=iso-8859-1`
+- 🛡️ **Robust Fallback**: Falls back to `latin1` encoding for unknown charsets
+
+**Example encoding handling:**
+```
+Content-Type: application/json; charset=utf-8    → Uses UTF-8
+Content-Type: application/json                   → Uses UTF-8 (default)
+Content-Type: text/html; charset=iso-8859-1      → Uses ISO-8859-1
+Content-Type: text/plain                         → Uses latin1 (fallback)
+```
+
+This ensures proper display of international characters, emoji, and special symbols in logged response bodies.
+
 ### Log Output Format
 
 The logger provides clean, structured output with unique request IDs to track individual requests:
