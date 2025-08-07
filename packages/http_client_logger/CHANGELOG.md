@@ -1,3 +1,20 @@
+## 1.1.2
+
+### Features
+- 📊 **Human-Readable Binary Content Logging**: Binary content now shows MIME type and smart size formatting
+- 📏 **Smart Size Formatting**: Automatically formats sizes as bytes, KB, or MB for better readability
+- 🎯 **Enhanced Binary Messages**: Format changed to `<binary content of {mime-type} with a length of {human-size}>`
+
+### Technical Improvements  
+- 🔧 **Added `_formatBytes()` method**: Intelligent byte size formatting (bytes/KB/MB)
+- 🎨 **Improved Binary Content Display**: Shows MIME type alongside human-readable file sizes
+- 📝 **Better Log Readability**: Cleaner binary content messages without raw byte counts
+
+### Example Output
+- Small files: `<binary content of image/jpeg with a length of 833 bytes>`
+- Medium files: `<binary content of image/png with a length of 1.5KB>`  
+- Large files: `<binary content of video/mp4 with a length of 2.3MB>`
+
 ## 1.1.1
 
 ### Features

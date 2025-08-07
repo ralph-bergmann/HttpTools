@@ -90,6 +90,34 @@ HttpLogger(level: Level.headers)
 HttpLogger(level: Level.body)
 ```
 
+### Binary Content Filtering
+
+When using `Level.body`, the logger intelligently handles binary content to avoid cluttering logs with unreadable data:
+
+```dart
+HttpLogger(
+  level: Level.body,
+  logBodyContentTypes: {'application/json', 'text/plain'}, // Only log these as text
+)
+```
+
+**Binary content is displayed with:**
+- **MIME type** - Shows the actual content type 
+- **Human-readable size** - Automatically formats as bytes, KB, or MB
+
+**Example outputs:**
+```
+[a1b2c3d4]     <binary content of image/jpeg with a length of 833 bytes>
+[a1b2c3d4]     <binary content of image/png with a length of 1.5KB>  
+[a1b2c3d4]     <binary content of video/mp4 with a length of 2.3MB>
+```
+
+**Default text content types include:**
+- `application/json`, `application/xml`
+- `text/plain`, `text/html`, `text/css`
+- `application/javascript`, `text/javascript`
+- `application/x-www-form-urlencoded`
+
 ### Log Output Format
 
 The logger provides clean, structured output with unique request IDs to track individual requests:

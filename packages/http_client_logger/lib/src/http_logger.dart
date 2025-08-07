@@ -52,7 +52,13 @@ String _generateRequestId() {
 ///         },
 ///       );
 ///     },
-///     () => HttpClientProxy(interceptors: [HttpLogger(level: Level.body)]),
+///     () => HttpClientProxy(interceptors: [
+///       // Log only JSON and plain text bodies
+///       HttpLogger(
+///         level: Level.body,
+///         logBodyContentTypes: {'application/json', 'text/plain'},
+///       ),
+///     ]),
 ///   );
 /// }
 /// ```
@@ -60,13 +66,36 @@ class HttpLogger extends HttpInterceptor {
   /// Creates an instance of [HttpLogger] with an optional logging [level].
   HttpLogger({
     this.level = Level.basic,
+    this.logBodyContentTypes,
   });
 
   /// The logging level to be used by this logger.
   final Level level;
 
+  /// Content types for which the body should be logged.
+  ///
+  /// If null (default), all bodies are logged as-is.
+  /// If provided, only responses with matching content types will have their
+  /// bodies logged as text. Others will show a summary message.
+  /// Use lowercase strings and include the full content type (e.g., 'application/json').
+  final Set<String>? logBodyContentTypes;
+
   /// Map to keep track of request timers for calculating request durations.
   final Map<String, Stopwatch> _requestTimers = {};
+
+  /// Default text content types that are safe to log.
+  static const Set<String> _defaultTextContentTypes = {
+    'application/json',
+    'application/xml',
+    'application/javascript',
+    'text/plain',
+    'text/html',
+    'text/css',
+    'text/javascript',
+    'text/xml',
+    'text/csv',
+    'application/x-www-form-urlencoded',
+  };
 
   /// Logs request details based on the specified [level].
   @override
@@ -144,9 +173,10 @@ class HttpLogger extends HttpInterceptor {
     StreamedResponse finalResponse;
     if (isBody) {
       final streams = StreamSplitter.splitFrom(response.stream);
+      final contentType = response.headers['content-type'];
 
       // Log the body using one stream and wait for it to complete
-      await _logResponseBody(streams[0], shortId);
+      await _logResponseBody(streams[0], shortId, contentType);
 
       // Create the final response with the other stream
       finalResponse = StreamedResponse(
@@ -239,21 +269,59 @@ class HttpLogger extends HttpInterceptor {
   }
 
   /// Logs the body of the HTTP response.
-  Future<void> _logResponseBody(Stream<List<int>> bodyStream, String shortId) async {
+  Future<void> _logResponseBody(Stream<List<int>> bodyStream, String shortId, String? contentType) async {
     try {
       final chunks = await bodyStream.toList();
       final bodyBytes = <int>[];
       chunks.forEach(bodyBytes.addAll);
 
-      final bodyString = utf8.decode(bodyBytes, allowMalformed: true);
+      if (bodyBytes.isEmpty) {
+        _logger.info('[$shortId]     <empty response body>');
+        return;
+      }
 
-      if (bodyString.isNotEmpty) {
+      // Check if we should log this content type as text
+      if (_shouldLogBody(contentType)) {
+        final bodyString = utf8.decode(bodyBytes, allowMalformed: true);
         _logger.info('[$shortId]     $bodyString');
       } else {
-        _logger.info('[$shortId]     <empty response body>');
+        // For binary/filtered content, show a summary with MIME type and human-readable size
+        final normalizedType = contentType?.toLowerCase().split(';').first.trim() ?? 'unknown';
+        final humanSize = _formatBytes(bodyBytes.length);
+        _logger.info('[$shortId]     <binary content of $normalizedType with a length of $humanSize>');
       }
     } catch (e) {
       _logger.info('[$shortId]     <error reading response body: $e>');
+    }
+  }
+
+  /// Checks if the content type should have its body logged as text.
+  bool _shouldLogBody(String? contentType) {
+    if (contentType == null) {
+      return true; // Log if no content type specified
+    }
+
+    final normalizedType = contentType.toLowerCase().split(';').first.trim();
+
+    // If user specified content types, use their list
+    if (logBodyContentTypes != null) {
+      return logBodyContentTypes!.contains(normalizedType);
+    }
+
+    // Otherwise use default text types
+    return _defaultTextContentTypes.contains(normalizedType) || normalizedType.startsWith('text/');
+  }
+
+  /// Formats a byte count into a human-readable string.
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) {
+      return '$bytes bytes';
+    } else if (bytes < 1024 * 1024) {
+      final kb = (bytes / 1024).toStringAsFixed(1);
+      return '${kb}KB';
+    } else {
+      final mb = (bytes / (1024 * 1024)).toStringAsFixed(1);
+      return '${mb}MB';
     }
   }
 }
