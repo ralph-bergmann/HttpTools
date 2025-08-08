@@ -210,30 +210,6 @@ HttpClientProxy(
 )
 ```
 
-### Error Handling with Retry
-```dart
-class RetryInterceptor extends HttpInterceptor {
-  final int maxRetries;
-  RetryInterceptor({this.maxRetries = 3});
-
-  @override
-  FutureOr<OnError> onError(BaseRequest request, Object error, StackTrace? stackTrace) async {
-    if (request.headers['retry-count'] == null) {
-      request.headers['retry-count'] = '1';
-      return OnError.retry(request);
-    }
-    
-    final retryCount = int.parse(request.headers['retry-count']!);
-    if (retryCount < maxRetries) {
-      request.headers['retry-count'] = '${retryCount + 1}';
-      return OnError.retry(request);
-    }
-    
-    return OnError.next(request, error, stackTrace);
-  }
-}
-```
-
 ### Custom Cache Control
 ```dart
 class CacheControlInterceptor extends HttpInterceptor {
@@ -254,23 +230,22 @@ class CacheControlInterceptor extends HttpInterceptor {
 }
 ```
 
-## 📱 Platform Support
-
-| Feature | Android | iOS | macOS | Windows | Linux | Web |
-|---------|---------|-----|-------|---------|-------|-----|
-| **Intercepting** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Logging** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Memory Cache** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Disk Cache** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-
 ## 🔗 Framework Compatibility
 
 Works seamlessly with popular HTTP packages:
 
-- ✅ [`http`](https://pub.dev/packages/http) - Official Dart HTTP client
-- ✅ [`dio`](https://pub.dev/packages/dio) - Powerful HTTP client
-- ✅ [`chopper`](https://pub.dev/packages/chopper) - HTTP client generator
-- ✅ [`retrofit`](https://pub.dev/packages/retrofit) - Type-safe HTTP client
+- ✅ [`http`](https://pub.dev/packages/http) - A composable, multi-platform, Future-based API for HTTP requests.
+- ✅ [`chopper`](https://pub.dev/packages/chopper) - An http client generator using source_gen, inspired by Retrofit 
+- ✅ [`retrofit`](https://pub.dev/packages/retrofit) - An dio client generator using source_gen and inspired by Chopper and Retrofit
+- ✅ [`dio`](https://pub.dev/packages/dio) - A powerful HTTP networking package
+
+**Note:** `dio` and `retrofit` (which uses `dio`) require the [`dio_compatibility_layer`](https://pub.dev/packages/dio_compatibility_layer) package to work with the standard `http` package that these interceptors depend on.
+
+```yaml
+dependencies:
+  http: ^1.2.0
+  dio_compatibility_layer: ^3.0.0  # Required for dio/retrofit compatibility
+```
 
 ## 📊 Performance Considerations
 
