@@ -15,7 +15,7 @@ final _logger = Logger('HttpLogger');
 final _random = Random();
 
 /// Custom header key to track request IDs.
-const _requestId = 'x-request-id';
+const _requestId = 'x-http-logger-request-id';
 
 /// Generates a short but unique request ID.
 ///
