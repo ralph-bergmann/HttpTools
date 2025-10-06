@@ -1,3 +1,8 @@
+## 1.1.4
+
+Change the name of the internally used 'request-id' header to avoid collisions with third-party libraries.
+
+
 ## 1.1.3
 
 ### Features
