@@ -4,7 +4,7 @@ repository: https://github.com/ralph-bergmann/HttpToolss
 issue_tracker: https://github.com/ralph-bergmann/HttpTools/issues
 
 environment:
-  sdk: ^3.6.0
+  sdk: ^3.10.8
 
 workspace:
   - packages/http_client_cache
@@ -14,12 +14,12 @@ workspace:
   - packages/http_client_logger
 
 dev_dependencies:
- melos: ^7.0.0-dev.7
+  melos: ^7.4.0
 
 melos:
   ide:
     intellij:
-      enabled: false
+      enabled: true
   scripts:
     analyze:
       exec: dart analyze .
