@@ -1,14 +1,14 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: journal.proto
-//
+// Generated from journal.proto.
+
 // @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -29,18 +29,31 @@ class Journal extends $pb.GeneratedMessage {
 
   Journal._();
 
-  factory Journal.fromBuffer($core.List<$core.int> data, [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(data, registry);
-  factory Journal.fromJson($core.String json, [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(json, registry);
+  factory Journal.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Journal.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Journal', package: const $pb.PackageName(_omitMessageNames ? '' : 'journal'), createEmptyInstance: create)
-    ..m<$core.String, JournalEntry>(1, _omitFieldNames ? '' : 'entries', entryClassName: 'Journal.EntriesEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OM, valueCreator: JournalEntry.create, valueDefaultOrMaker: JournalEntry.getDefault, packageName: const $pb.PackageName('journal'))
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Journal',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'journal'),
+      createEmptyInstance: create)
+    ..m<$core.String, JournalEntry>(1, _omitFieldNames ? '' : 'entries',
+        entryClassName: 'Journal.EntriesEntry',
+        keyFieldType: $pb.PbFieldType.OS,
+        valueFieldType: $pb.PbFieldType.OM,
+        valueCreator: JournalEntry.create,
+        valueDefaultOrMaker: JournalEntry.getDefault,
+        packageName: const $pb.PackageName('journal'))
+    ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  Journal clone() => Journal()..mergeFromMessage(this);
+  Journal clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  Journal copyWith(void Function(Journal) updates) => super.copyWith((message) => updates(message as Journal)) as Journal;
+  Journal copyWith(void Function(Journal) updates) =>
+      super.copyWith((message) => updates(message as Journal)) as Journal;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
@@ -49,9 +62,9 @@ class Journal extends $pb.GeneratedMessage {
   static Journal create() => Journal._();
   @$core.override
   Journal createEmptyInstance() => create();
-  static $pb.PbList<Journal> createRepeated() => $pb.PbList<Journal>();
   @$core.pragma('dart2js:noInline')
-  static Journal getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Journal>(create);
+  static Journal getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Journal>(create);
   static Journal? _defaultInstance;
 
   /// A map that associates a primary cache key with a JournalEntry.
@@ -73,19 +86,34 @@ class JournalEntry extends $pb.GeneratedMessage {
 
   JournalEntry._();
 
-  factory JournalEntry.fromBuffer($core.List<$core.int> data, [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(data, registry);
-  factory JournalEntry.fromJson($core.String json, [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(json, registry);
+  factory JournalEntry.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory JournalEntry.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'JournalEntry', package: const $pb.PackageName(_omitMessageNames ? '' : 'journal'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'JournalEntry',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'journal'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'cacheKey', protoName: 'cacheKey')
-    ..m<$core.String, CacheEntry>(2, _omitFieldNames ? '' : 'cacheEntries', protoName: 'cacheEntries', entryClassName: 'JournalEntry.CacheEntriesEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OM, valueCreator: CacheEntry.create, valueDefaultOrMaker: CacheEntry.getDefault, packageName: const $pb.PackageName('journal'))
-    ..hasRequiredFields = false
-  ;
+    ..m<$core.String, CacheEntry>(2, _omitFieldNames ? '' : 'cacheEntries',
+        protoName: 'cacheEntries',
+        entryClassName: 'JournalEntry.CacheEntriesEntry',
+        keyFieldType: $pb.PbFieldType.OS,
+        valueFieldType: $pb.PbFieldType.OM,
+        valueCreator: CacheEntry.create,
+        valueDefaultOrMaker: CacheEntry.getDefault,
+        packageName: const $pb.PackageName('journal'))
+    ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  JournalEntry clone() => JournalEntry()..mergeFromMessage(this);
+  JournalEntry clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  JournalEntry copyWith(void Function(JournalEntry) updates) => super.copyWith((message) => updates(message as JournalEntry)) as JournalEntry;
+  JournalEntry copyWith(void Function(JournalEntry) updates) =>
+      super.copyWith((message) => updates(message as JournalEntry))
+          as JournalEntry;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
@@ -94,9 +122,9 @@ class JournalEntry extends $pb.GeneratedMessage {
   static JournalEntry create() => JournalEntry._();
   @$core.override
   JournalEntry createEmptyInstance() => create();
-  static $pb.PbList<JournalEntry> createRepeated() => $pb.PbList<JournalEntry>();
   @$core.pragma('dart2js:noInline')
-  static JournalEntry getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<JournalEntry>(create);
+  static JournalEntry getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<JournalEntry>(create);
   static JournalEntry? _defaultInstance;
 
   /// The primary cache key.
@@ -138,36 +166,58 @@ class CacheEntry extends $pb.GeneratedMessage {
     if (creationDate != null) result.creationDate = creationDate;
     if (reasonPhrase != null) result.reasonPhrase = reasonPhrase;
     if (contentLength != null) result.contentLength = contentLength;
-    if (responseHeaders != null) result.responseHeaders.addEntries(responseHeaders);
+    if (responseHeaders != null)
+      result.responseHeaders.addEntries(responseHeaders);
     if (varyHeaders != null) result.varyHeaders.addEntries(varyHeaders);
     if (hitCount != null) result.hitCount = hitCount;
     if (lastAccessDate != null) result.lastAccessDate = lastAccessDate;
-    if (persistedResponseSize != null) result.persistedResponseSize = persistedResponseSize;
+    if (persistedResponseSize != null)
+      result.persistedResponseSize = persistedResponseSize;
     return result;
   }
 
   CacheEntry._();
 
-  factory CacheEntry.fromBuffer($core.List<$core.int> data, [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(data, registry);
-  factory CacheEntry.fromJson($core.String json, [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(json, registry);
+  factory CacheEntry.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CacheEntry.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CacheEntry', package: const $pb.PackageName(_omitMessageNames ? '' : 'journal'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CacheEntry',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'journal'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'cacheKey', protoName: 'cacheKey')
-    ..aOM<$0.Timestamp>(2, _omitFieldNames ? '' : 'creationDate', protoName: 'creationDate', subBuilder: $0.Timestamp.create)
+    ..aOM<$0.Timestamp>(2, _omitFieldNames ? '' : 'creationDate',
+        protoName: 'creationDate', subBuilder: $0.Timestamp.create)
     ..aOS(4, _omitFieldNames ? '' : 'reasonPhrase', protoName: 'reasonPhrase')
-    ..a<$core.int>(5, _omitFieldNames ? '' : 'contentLength', $pb.PbFieldType.O3, protoName: 'contentLength')
-    ..m<$core.String, $core.String>(6, _omitFieldNames ? '' : 'responseHeaders', protoName: 'responseHeaders', entryClassName: 'CacheEntry.ResponseHeadersEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OS, packageName: const $pb.PackageName('journal'))
-    ..m<$core.String, $core.String>(7, _omitFieldNames ? '' : 'varyHeaders', protoName: 'varyHeaders', entryClassName: 'CacheEntry.VaryHeadersEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OS, packageName: const $pb.PackageName('journal'))
-    ..a<$core.int>(8, _omitFieldNames ? '' : 'hitCount', $pb.PbFieldType.O3, protoName: 'hitCount')
-    ..aOM<$0.Timestamp>(9, _omitFieldNames ? '' : 'lastAccessDate', protoName: 'lastAccessDate', subBuilder: $0.Timestamp.create)
-    ..a<$core.int>(10, _omitFieldNames ? '' : 'persistedResponseSize', $pb.PbFieldType.O3, protoName: 'persistedResponseSize')
-    ..hasRequiredFields = false
-  ;
+    ..aI(5, _omitFieldNames ? '' : 'contentLength', protoName: 'contentLength')
+    ..m<$core.String, $core.String>(6, _omitFieldNames ? '' : 'responseHeaders',
+        protoName: 'responseHeaders',
+        entryClassName: 'CacheEntry.ResponseHeadersEntry',
+        keyFieldType: $pb.PbFieldType.OS,
+        valueFieldType: $pb.PbFieldType.OS,
+        packageName: const $pb.PackageName('journal'))
+    ..m<$core.String, $core.String>(7, _omitFieldNames ? '' : 'varyHeaders',
+        protoName: 'varyHeaders',
+        entryClassName: 'CacheEntry.VaryHeadersEntry',
+        keyFieldType: $pb.PbFieldType.OS,
+        valueFieldType: $pb.PbFieldType.OS,
+        packageName: const $pb.PackageName('journal'))
+    ..aI(8, _omitFieldNames ? '' : 'hitCount', protoName: 'hitCount')
+    ..aOM<$0.Timestamp>(9, _omitFieldNames ? '' : 'lastAccessDate',
+        protoName: 'lastAccessDate', subBuilder: $0.Timestamp.create)
+    ..aI(10, _omitFieldNames ? '' : 'persistedResponseSize',
+        protoName: 'persistedResponseSize')
+    ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CacheEntry clone() => CacheEntry()..mergeFromMessage(this);
+  CacheEntry clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CacheEntry copyWith(void Function(CacheEntry) updates) => super.copyWith((message) => updates(message as CacheEntry)) as CacheEntry;
+  CacheEntry copyWith(void Function(CacheEntry) updates) =>
+      super.copyWith((message) => updates(message as CacheEntry)) as CacheEntry;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
@@ -176,9 +226,9 @@ class CacheEntry extends $pb.GeneratedMessage {
   static CacheEntry create() => CacheEntry._();
   @$core.override
   CacheEntry createEmptyInstance() => create();
-  static $pb.PbList<CacheEntry> createRepeated() => $pb.PbList<CacheEntry>();
   @$core.pragma('dart2js:noInline')
-  static CacheEntry getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CacheEntry>(create);
+  static CacheEntry getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CacheEntry>(create);
   static CacheEntry? _defaultInstance;
 
   /// The secondary cache key.
@@ -284,6 +334,7 @@ class CacheEntry extends $pb.GeneratedMessage {
   void clearPersistedResponseSize() => $_clearField(10);
 }
 
-
-const $core.bool _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const $core.bool _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
+const $core.bool _omitFieldNames =
+    $core.bool.fromEnvironment('protobuf.omit_field_names');
+const $core.bool _omitMessageNames =
+    $core.bool.fromEnvironment('protobuf.omit_message_names');
