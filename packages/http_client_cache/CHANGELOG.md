@@ -1,3 +1,7 @@
+## 1.0.6
+
+- chore: update Flutter SDK version and dependencies
+
 ## 1.0.5
 
 - chore: update Flutter SDK version and dependencies
