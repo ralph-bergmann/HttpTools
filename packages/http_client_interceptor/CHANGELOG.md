@@ -1,6 +1,6 @@
-## 1.0.0
+## 1.0.2
 
-- Initial version.
+- chore: update Flutter SDK version and dependencies
 
 ## 1.0.1
 
@@ -8,6 +8,6 @@
 - improved documentation
 - improved examples
 
-## 1.0.2
+## 1.0.0
 
-- chore: update Flutter SDK version and dependencies
+- Initial version.
