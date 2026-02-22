@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
+
 import 'package:async/async.dart';
 import 'package:http/http.dart';
 import 'package:http_client_interceptor/http_client_interceptor.dart';
-import 'package:http_parser/http_parser.dart';
 import 'package:logging/logging.dart';
 
 /// Logger instance for HTTP logging.
@@ -102,6 +102,7 @@ class HttpLogger extends HttpInterceptor {
   /// Logs request details based on the specified [level].
   @override
   FutureOr<OnRequest> onRequest(BaseRequest request) {
+    final sb = StringBuffer();
     final isBasic = level.index >= Level.basic.index;
     final isHeaders = level.index >= Level.headers.index;
     final isBody = level.index >= Level.body.index;
@@ -115,28 +116,19 @@ class HttpLogger extends HttpInterceptor {
     final shortId = requestId;
 
     if (isBasic) {
-      _logger.info(
-        '[$shortId] --> ${request.method} ${request.url}',
-      );
+      sb.writeln('BEGIN Request ${request.method} ${request.url} [$shortId]');
     }
     if (isHeaders) {
-      if (request.headers.isNotEmpty) {
-        request.headers.forEach((header, value) {
-          // Skip our internal request ID header
-          if (header != _requestId) {
-            _logger.info('[$shortId]     $header: $value');
-          }
-        });
-      } else {
-        _logger.info('[$shortId]     <no headers>');
-      }
+      _logHttpHeaders(sb, request.headers);
     }
     if (isBody) {
-      _logRequestBody(request, shortId);
+      _logRequestBody(sb, request);
     }
     if (isHeaders || isBody) {
-      _logger.info('[$shortId] --> END ${request.method}');
+      sb.write('END Request [$shortId]');
     }
+
+    _logger.info(sb.toString());
 
     return OnRequest.next(request);
   }
@@ -144,31 +136,26 @@ class HttpLogger extends HttpInterceptor {
   /// Logs response details based on the specified [level].
   @override
   FutureOr<OnResponse> onResponse(StreamedResponse response) async {
+    final sb = StringBuffer();
     final isBasic = level.index >= Level.basic.index;
     final isHeaders = level.index >= Level.headers.index;
     final isBody = level.index >= Level.body.index;
 
-    final requestId = response.request?.headers[_requestId];
+    final request = response.request;
+    final requestId = request?.headers[_requestId];
     final duration = _stopTimer(requestId);
-
-    // Use the same ID that's in the headers
     final shortId = requestId ?? 'unknown';
 
     if (isBasic) {
-      _logger.info(
-        '[$shortId] <-- ${response.statusCode} ${response.reasonPhrase ?? ''} '
-        '(${duration ?? '?'}ms)',
+      sb.writeln(
+        'BEGIN Response ${response.statusCode}'
+        '${response.reasonPhrase == null || response.reasonPhrase!.isEmpty ? '' : ' ${response.reasonPhrase}'}'
+        '${duration == null ? '' : ' (${duration}ms)'} ${request?.method} ${request?.url} [$shortId]',
       );
     }
 
     if (isHeaders) {
-      if (response.headers.isNotEmpty) {
-        response.headers.forEach((header, value) {
-          _logger.info('[$shortId]     $header: $value');
-        });
-      } else {
-        _logger.info('[$shortId]     <no headers>');
-      }
+      _logHttpHeaders(sb, response.headers);
     }
 
     // If we need to log the body, split the stream
@@ -178,7 +165,7 @@ class HttpLogger extends HttpInterceptor {
       final contentType = response.headers['content-type'];
 
       // Log the body using one stream and wait for it to complete
-      await _logResponseBody(streams[0], shortId, contentType);
+      await _logResponseBody(sb, streams[0], contentType);
 
       // Create the final response with the other stream
       finalResponse = StreamedResponse(
@@ -196,23 +183,29 @@ class HttpLogger extends HttpInterceptor {
     }
 
     if (isHeaders || isBody) {
-      _logger.info('[$shortId] <-- END');
+      sb.write('END Response [$shortId]');
     }
+
+    _logger.info(sb.toString());
 
     return OnResponse.next(finalResponse);
   }
 
   /// Handles errors during HTTP transactions.
   @override
-  FutureOr<OnError> onError(
-    BaseRequest request,
-    Object error,
-    StackTrace? stackTrace,
-  ) {
+  FutureOr<OnError> onError(BaseRequest request, Object error, StackTrace? stackTrace) {
+    final sb = StringBuffer();
     final requestId = request.headers[_requestId];
+    final duration = _stopTimer(requestId);
     final shortId = requestId ?? 'unknown';
 
-    _logger.severe('[$shortId] HTTP Error: $error', error, stackTrace);
+    sb.write(
+      'Error: $error'
+      '${duration == null ? '' : ' (${duration}ms)'}+${request.method} ${request.url} [$shortId]',
+    );
+
+    _logger.severe(sb.toString(), error, stackTrace);
+
     return OnError.next(request, error, stackTrace);
   }
 
@@ -237,48 +230,81 @@ class HttpLogger extends HttpInterceptor {
     return null;
   }
 
+  void _logHttpHeaders(StringBuffer sb, Map<String, String> headers) {
+    if (headers.isNotEmpty) {
+      headers.forEach((header, value) {
+        // Skip our internal request ID header
+        if (header != _requestId) {
+          sb.writeln('     $header: $value');
+        }
+      });
+    } else {
+      sb.writeln('     <no headers>');
+    }
+  }
+
   /// Logs the body of the HTTP request.
-  void _logRequestBody(BaseRequest request, String shortId) {
+  void _logRequestBody(StringBuffer sb, BaseRequest request) {
     try {
       if (request is Request) {
         if (request.body.isNotEmpty) {
-          _logger.info('[$shortId]     ${request.body}');
+          final humanSize = _formatBytes(request.bodyBytes.length);
+          sb
+            ..writeln()
+            ..writeln('     Body: ($humanSize)')
+            ..writeln('     ${request.body}');
         } else {
-          _logger.info('[$shortId]     <empty request body>');
+          sb
+            ..writeln()
+            ..writeln('     Body: (0 bytes)')
+            ..writeln('     <empty>');
         }
       } else if (request is MultipartRequest) {
-        _logger.info('[$shortId]     Multipart request with '
-            '${request.fields.length} fields and ${request.files.length} files');
+        final fieldCount = request.fields.length;
+        final fileCount = request.files.length;
+        sb
+          ..writeln()
+          ..writeln('     Body: (multipart, $fieldCount fields, $fileCount files)');
         if (request.fields.isNotEmpty) {
-          _logger.info('[$shortId]     Fields:');
+          sb.writeln('     Fields:');
           request.fields.forEach((key, value) {
-            _logger.info('[$shortId]       $key: $value');
+            sb.writeln('       $key: $value');
           });
         }
         if (request.files.isNotEmpty) {
-          _logger.info('[$shortId]     Files:');
+          sb.writeln('     Files:');
           for (final file in request.files) {
-            _logger.info('[$shortId]       ${file.field}: '
-                '${file.filename ?? '<no filename>'} (${file.length} bytes)');
+            final humanSize = _formatBytes(file.length);
+            sb.writeln('       ${file.field}: ${file.filename ?? '<no filename>'} ($humanSize)');
           }
         }
       } else {
-        _logger.info('[$shortId]     <binary or unsupported request body>');
+        sb
+          ..writeln()
+          ..writeln('     Body: <binary or unsupported>');
       }
     } catch (e) {
-      _logger.info('[$shortId]     <error reading request body: $e>');
+      sb.writeln('     <error reading request body: $e>');
     }
   }
 
   /// Logs the body of the HTTP response.
-  Future<void> _logResponseBody(Stream<List<int>> bodyStream, String shortId, String? contentType) async {
+  Future<void> _logResponseBody(StringBuffer sb, Stream<List<int>> bodyStream, String? contentType) async {
     try {
       final bodyBytes = _toUint8List(await bodyStream.expand((chunk) => chunk).toList());
 
       if (bodyBytes.isEmpty) {
-        _logger.info('[$shortId]     <empty response body>');
+        sb
+          ..writeln()
+          ..writeln('     Body: (0 bytes)')
+          ..writeln('     <empty response body>');
         return;
       }
+
+      final humanSize = _formatBytes(bodyBytes.length);
+      sb
+        ..writeln()
+        ..writeln('     Body: ($humanSize)');
 
       // Check if we should log this content type as text
       if (_shouldLogBody(contentType)) {
@@ -288,20 +314,19 @@ class HttpLogger extends HttpInterceptor {
 
         try {
           final bodyString = encoding.decode(bodyBytes);
-          _logger.info('[$shortId]     $bodyString');
+          sb.writeln('     $bodyString');
         } catch (e) {
           // If decoding fails, fall back to UTF-8 with malformed handling
           final bodyString = utf8.decode(bodyBytes, allowMalformed: true);
-          _logger.info('[$shortId]     $bodyString');
+          sb.writeln('     $bodyString');
         }
       } else {
-        // For binary/filtered content, show a summary with MIME type and human-readable size
+        // For binary/filtered content, show a summary with MIME type
         final normalizedType = contentType?.toLowerCase().split(';').first.trim() ?? 'unknown';
-        final humanSize = _formatBytes(bodyBytes.length);
-        _logger.info('[$shortId]     <binary content of $normalizedType with a length of $humanSize>');
+        sb.writeln('     <binary content of $normalizedType>');
       }
     } catch (e) {
-      _logger.info('[$shortId]     <error reading response body: $e>');
+      sb.writeln('     <error reading response body: $e>');
     }
   }
 
@@ -402,5 +427,5 @@ enum Level {
   /// **Warning:** This level can significantly impact performance as it reads
   /// and processes the entire request/response body content. Use with caution
   /// in production environments.
-  body
+  body,
 }
